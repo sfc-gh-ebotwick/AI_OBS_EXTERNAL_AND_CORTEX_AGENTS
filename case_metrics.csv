@@ -1,0 +1,201 @@
+CASE_ID,CUSTOMER_ID,CASE_DATE,PRODUCT,ISSUE_CATEGORY,PRIORITY,FIRST_RESPONSE_TIME_MINS,RESOLUTION_TIME_HOURS,NUM_INTERACTIONS,CSAT_SCORE,ESCALATED
+CASE-00001,CUST-0041,2025-12-15,CloudStore Platform,Integration,Medium,8,5.6,3,4.6,0
+CASE-00002,CUST-0038,2026-01-24,CloudStore Platform,Login/Authentication,Low,17,2.7,1,2.7,0
+CASE-00003,CUST-0036,2025-12-26,API Gateway,Configuration,Medium,17,5.0,1,3.7,0
+CASE-00004,CUST-0049,2025-12-21,AnalyticsHub,Feature Request,Medium,13,10.9,2,4.3,0
+CASE-00005,CUST-0006,2026-01-18,CloudStore Platform,Feature Request,High,25,19.1,3,3.8,1
+CASE-00006,CUST-0047,2026-01-28,API Gateway,Performance,Critical,38,18.7,8,4.3,0
+CASE-00007,CUST-0041,2026-02-18,SecureVault,Data Loss,High,23,11.4,3,4.9,1
+CASE-00008,CUST-0006,2025-12-30,CloudStore Platform,Configuration,Medium,15,10.8,4,2.7,0
+CASE-00009,CUST-0024,2026-01-15,DataSync Pro,Integration,High,23,10.3,3,4.1,0
+CASE-00010,CUST-0035,2026-01-01,DataSync Pro,Security,Medium,18,12.8,3,5.0,0
+CASE-00011,CUST-0044,2026-01-11,CloudStore Platform,Data Loss,High,16,13.2,3,5.0,0
+CASE-00012,CUST-0018,2025-12-09,DataSync Pro,Feature Request,Medium,20,7.1,7,3.1,0
+CASE-00013,CUST-0010,2026-01-03,DataSync Pro,Data Loss,High,18,12.6,3,4.4,0
+CASE-00014,CUST-0038,2026-01-21,SecureVault,Data Loss,Critical,33,11.1,6,4.0,0
+CASE-00015,CUST-0006,2025-12-07,CloudStore Platform,Billing,High,26,9.3,6,4.7,0
+CASE-00016,CUST-0025,2026-01-18,API Gateway,Security,Medium,16,14.6,3,5.0,0
+CASE-00017,CUST-0044,2026-02-07,SecureVault,Feature Request,Low,18,10.6,4,3.8,0
+CASE-00018,CUST-0001,2026-01-03,API Gateway,Billing,Medium,13,10.4,4,3.9,0
+CASE-00019,CUST-0010,2026-01-17,DataSync Pro,Login/Authentication,Medium,14,9.6,5,3.9,0
+CASE-00020,CUST-0024,2026-01-09,DataSync Pro,Login/Authentication,Medium,29,10.8,4,2.9,0
+CASE-00021,CUST-0047,2026-02-01,CloudStore Platform,Billing,Low,15,6.4,2,5.0,0
+CASE-00022,CUST-0017,2026-02-06,API Gateway,Configuration,Critical,29,14.5,5,2.7,1
+CASE-00023,CUST-0026,2026-02-24,SecureVault,Security,High,25,13.1,5,2.9,0
+CASE-00024,CUST-0015,2025-12-09,SecureVault,Login/Authentication,Medium,15,9.3,3,4.6,0
+CASE-00025,CUST-0001,2025-12-10,CloudStore Platform,Data Loss,Low,19,8.9,3,3.1,0
+CASE-00026,CUST-0033,2025-12-31,SecureVault,Security,Medium,26,13.8,3,3.8,0
+CASE-00027,CUST-0016,2026-01-30,AnalyticsHub,Data Loss,Low,11,7.8,3,4.7,0
+CASE-00028,CUST-0028,2026-01-22,AnalyticsHub,Login/Authentication,High,19,10.5,2,4.3,1
+CASE-00029,CUST-0026,2026-01-13,CloudStore Platform,Data Loss,Low,16,7.8,1,3.8,0
+CASE-00030,CUST-0028,2025-12-24,SecureVault,Security,Medium,24,9.3,2,4.5,0
+CASE-00031,CUST-0004,2026-02-22,API Gateway,Login/Authentication,Critical,20,9.6,5,3.6,0
+CASE-00032,CUST-0027,2026-02-01,AnalyticsHub,Data Loss,High,17,16.0,2,2.8,0
+CASE-00033,CUST-0001,2026-01-19,SecureVault,Security,Medium,17,10.4,1,3.5,0
+CASE-00034,CUST-0010,2025-12-25,SecureVault,Data Loss,Critical,33,20.6,3,3.8,0
+CASE-00035,CUST-0048,2026-01-10,CloudStore Platform,Login/Authentication,Medium,18,8.6,3,3.0,0
+CASE-00036,CUST-0004,2026-02-04,CloudStore Platform,Billing,Low,14,8.9,3,4.2,0
+CASE-00037,CUST-0008,2026-02-11,DataSync Pro,Login/Authentication,High,27,10.5,6,3.7,1
+CASE-00038,CUST-0017,2025-12-27,SecureVault,Data Loss,Medium,18,7.6,1,5.0,0
+CASE-00039,CUST-0021,2025-12-10,CloudStore Platform,Security,High,25,10.0,5,4.3,0
+CASE-00040,CUST-0035,2025-12-28,API Gateway,Integration,Low,14,1.6,1,5.0,0
+CASE-00041,CUST-0024,2026-01-06,DataSync Pro,Security,High,16,12.1,6,3.3,0
+CASE-00042,CUST-0043,2026-02-09,SecureVault,Performance,Critical,29,14.8,3,2.6,0
+CASE-00043,CUST-0007,2026-02-09,DataSync Pro,Integration,Medium,17,10.7,2,3.3,0
+CASE-00044,CUST-0044,2026-02-20,SecureVault,Security,Medium,13,7.7,3,3.2,0
+CASE-00045,CUST-0041,2026-01-24,SecureVault,Login/Authentication,Low,24,9.6,1,5.0,0
+CASE-00046,CUST-0011,2026-01-26,API Gateway,Configuration,Medium,15,17.9,4,3.8,0
+CASE-00047,CUST-0035,2025-12-05,SecureVault,Billing,Medium,14,7.4,4,2.8,0
+CASE-00048,CUST-0003,2026-01-15,DataSync Pro,Data Loss,High,25,11.5,2,2.9,1
+CASE-00049,CUST-0040,2025-12-20,DataSync Pro,Billing,Critical,37,18.1,5,4.1,0
+CASE-00050,CUST-0002,2025-12-23,SecureVault,Configuration,High,16,9.2,5,3.5,0
+CASE-00051,CUST-0011,2026-02-28,CloudStore Platform,Configuration,High,17,10.3,2,4.4,1
+CASE-00052,CUST-0013,2026-01-28,SecureVault,Integration,High,28,15.2,3,3.8,0
+CASE-00053,CUST-0002,2026-02-23,DataSync Pro,Configuration,Medium,17,11.9,1,4.8,0
+CASE-00054,CUST-0023,2026-02-21,API Gateway,Configuration,High,20,18.5,3,3.8,0
+CASE-00055,CUST-0002,2025-12-15,SecureVault,Billing,Medium,7,11.5,2,4.0,0
+CASE-00056,CUST-0039,2026-01-25,SecureVault,Feature Request,Medium,13,4.3,3,4.6,0
+CASE-00057,CUST-0037,2025-12-25,SecureVault,Login/Authentication,High,28,13.5,6,2.8,0
+CASE-00058,CUST-0024,2026-01-25,CloudStore Platform,Feature Request,High,28,10.1,4,2.8,1
+CASE-00059,CUST-0033,2026-01-09,AnalyticsHub,Feature Request,Medium,18,11.2,3,3.7,0
+CASE-00060,CUST-0013,2026-01-23,AnalyticsHub,Billing,High,17,11.0,5,2.8,0
+CASE-00061,CUST-0020,2026-01-06,DataSync Pro,Configuration,High,26,13.3,6,3.7,0
+CASE-00062,CUST-0029,2026-01-26,DataSync Pro,Security,High,23,6.5,8,4.7,0
+CASE-00063,CUST-0019,2026-02-04,API Gateway,Feature Request,Low,7,9.4,1,5.0,0
+CASE-00064,CUST-0015,2025-12-26,DataSync Pro,Login/Authentication,Low,16,3.8,4,5.0,0
+CASE-00065,CUST-0030,2026-01-23,API Gateway,Data Loss,High,12,14.7,5,3.9,1
+CASE-00066,CUST-0016,2025-12-19,CloudStore Platform,Performance,High,24,14.3,4,3.0,0
+CASE-00067,CUST-0004,2026-02-10,DataSync Pro,Performance,Medium,25,6.0,3,5.0,0
+CASE-00068,CUST-0049,2026-01-26,API Gateway,Configuration,High,20,11.5,3,4.7,0
+CASE-00069,CUST-0048,2026-01-30,AnalyticsHub,Integration,High,28,18.2,5,4.7,0
+CASE-00070,CUST-0041,2025-12-31,SecureVault,Security,Low,7,4.5,1,3.4,0
+CASE-00071,CUST-0022,2026-01-10,API Gateway,Performance,Low,16,8.2,1,3.2,0
+CASE-00072,CUST-0046,2025-12-28,CloudStore Platform,Configuration,Medium,13,5.4,1,4.5,0
+CASE-00073,CUST-0004,2025-12-27,AnalyticsHub,Configuration,Critical,22,16.1,5,5.0,0
+CASE-00074,CUST-0031,2025-12-01,SecureVault,Integration,High,25,7.7,4,4.0,1
+CASE-00075,CUST-0032,2025-12-29,SecureVault,Configuration,Medium,12,10.9,4,4.9,0
+CASE-00076,CUST-0047,2025-12-22,AnalyticsHub,Billing,Critical,26,20.4,5,1.9,0
+CASE-00077,CUST-0038,2026-02-11,CloudStore Platform,Performance,High,25,14.1,3,3.5,0
+CASE-00078,CUST-0004,2026-01-03,AnalyticsHub,Feature Request,Medium,17,11.9,4,4.3,0
+CASE-00079,CUST-0018,2026-01-23,SecureVault,Performance,Medium,12,12.4,3,5.0,0
+CASE-00080,CUST-0023,2025-12-29,CloudStore Platform,Login/Authentication,High,24,14.3,3,3.4,0
+CASE-00081,CUST-0040,2025-12-20,DataSync Pro,Billing,Medium,11,9.6,2,3.9,0
+CASE-00082,CUST-0030,2026-02-28,SecureVault,Feature Request,Low,26,9.0,1,3.9,0
+CASE-00083,CUST-0020,2025-12-14,API Gateway,Login/Authentication,Critical,31,18.7,7,3.8,0
+CASE-00084,CUST-0046,2025-12-26,CloudStore Platform,Data Loss,Low,11,5.2,1,3.6,0
+CASE-00085,CUST-0037,2025-12-06,SecureVault,Configuration,High,13,14.6,4,2.4,0
+CASE-00086,CUST-0001,2026-01-23,AnalyticsHub,Performance,Medium,12,11.9,4,4.9,0
+CASE-00087,CUST-0028,2025-12-23,API Gateway,Integration,High,27,13.6,4,3.1,0
+CASE-00088,CUST-0028,2026-02-14,SecureVault,Feature Request,High,21,10.6,5,3.6,0
+CASE-00089,CUST-0029,2026-01-01,AnalyticsHub,Configuration,Medium,11,15.6,3,3.4,0
+CASE-00090,CUST-0032,2025-12-28,SecureVault,Integration,Medium,12,9.4,4,4.0,0
+CASE-00091,CUST-0034,2025-12-25,CloudStore Platform,Data Loss,High,19,14.9,2,4.0,0
+CASE-00092,CUST-0045,2026-01-30,AnalyticsHub,Security,High,19,15.6,6,5.0,0
+CASE-00093,CUST-0026,2026-02-27,DataSync Pro,Integration,High,21,14.6,5,2.9,0
+CASE-00094,CUST-0028,2026-02-09,SecureVault,Feature Request,High,19,17.2,2,4.6,0
+CASE-00095,CUST-0015,2025-12-16,DataSync Pro,Feature Request,Low,7,5.3,2,2.8,0
+CASE-00096,CUST-0014,2026-01-31,SecureVault,Integration,Critical,35,16.6,8,3.2,0
+CASE-00097,CUST-0015,2026-01-16,DataSync Pro,Integration,Low,7,5.8,2,3.8,0
+CASE-00098,CUST-0003,2025-12-07,API Gateway,Integration,High,17,9.0,4,3.4,0
+CASE-00099,CUST-0001,2026-02-12,SecureVault,Security,Medium,29,11.0,3,4.0,0
+CASE-00100,CUST-0017,2026-01-31,CloudStore Platform,Performance,Medium,16,11.2,3,3.1,0
+CASE-00101,CUST-0010,2025-12-20,API Gateway,Integration,Low,16,1.3,4,3.1,0
+CASE-00102,CUST-0039,2026-02-15,API Gateway,Data Loss,High,25,12.6,4,4.4,0
+CASE-00103,CUST-0020,2026-02-14,AnalyticsHub,Integration,Medium,13,9.2,5,5.0,0
+CASE-00104,CUST-0049,2025-12-27,DataSync Pro,Integration,High,19,14.3,4,2.5,0
+CASE-00105,CUST-0036,2025-12-10,DataSync Pro,Login/Authentication,Medium,15,5.7,4,4.5,0
+CASE-00106,CUST-0019,2025-12-05,DataSync Pro,Integration,High,19,11.2,5,3.6,1
+CASE-00107,CUST-0044,2025-12-30,SecureVault,Data Loss,Medium,20,14.1,3,4.6,0
+CASE-00108,CUST-0018,2025-12-19,CloudStore Platform,Login/Authentication,Low,23,5.8,2,4.4,0
+CASE-00109,CUST-0029,2025-12-16,AnalyticsHub,Integration,High,20,9.4,7,3.6,0
+CASE-00110,CUST-0029,2025-12-11,API Gateway,Login/Authentication,High,23,9.7,3,5.0,0
+CASE-00111,CUST-0002,2025-12-12,DataSync Pro,Login/Authentication,Critical,26,16.8,5,3.6,0
+CASE-00112,CUST-0049,2025-12-23,AnalyticsHub,Security,Critical,37,14.1,7,4.3,0
+CASE-00113,CUST-0041,2026-02-01,CloudStore Platform,Security,Medium,18,14.1,1,3.7,0
+CASE-00114,CUST-0011,2026-01-12,AnalyticsHub,Security,Medium,22,10.6,3,3.5,0
+CASE-00115,CUST-0030,2025-12-12,SecureVault,Integration,Medium,18,9.3,1,3.3,0
+CASE-00116,CUST-0043,2026-02-08,AnalyticsHub,Configuration,Low,5,11.9,4,3.4,0
+CASE-00117,CUST-0041,2026-01-26,CloudStore Platform,Data Loss,Medium,22,16.9,2,4.9,0
+CASE-00118,CUST-0045,2026-02-01,CloudStore Platform,Login/Authentication,Critical,31,15.3,4,3.1,0
+CASE-00119,CUST-0020,2026-02-09,CloudStore Platform,Configuration,Low,25,5.4,4,5.0,0
+CASE-00120,CUST-0008,2026-02-21,DataSync Pro,Security,Critical,35,22.0,7,3.5,0
+CASE-00121,CUST-0027,2026-01-31,AnalyticsHub,Data Loss,Medium,29,6.6,6,3.2,0
+CASE-00122,CUST-0039,2026-02-04,DataSync Pro,Performance,Medium,24,9.8,6,5.0,0
+CASE-00123,CUST-0033,2026-01-04,CloudStore Platform,Integration,High,19,20.8,2,3.5,0
+CASE-00124,CUST-0010,2026-01-27,API Gateway,Security,Medium,21,6.9,3,4.3,0
+CASE-00125,CUST-0030,2026-01-11,DataSync Pro,Data Loss,Medium,20,12.4,3,4.4,0
+CASE-00126,CUST-0021,2026-01-30,AnalyticsHub,Configuration,Critical,29,10.7,3,2.9,1
+CASE-00127,CUST-0003,2025-12-17,API Gateway,Feature Request,High,29,7.0,5,2.9,1
+CASE-00128,CUST-0034,2026-01-28,CloudStore Platform,Billing,Medium,16,7.9,4,4.4,0
+CASE-00129,CUST-0031,2026-01-03,SecureVault,Configuration,High,22,14.3,4,5.0,0
+CASE-00130,CUST-0021,2026-02-19,AnalyticsHub,Login/Authentication,High,19,16.6,6,3.8,0
+CASE-00131,CUST-0048,2025-12-12,AnalyticsHub,Performance,High,24,12.6,3,4.5,0
+CASE-00132,CUST-0011,2026-02-27,SecureVault,Login/Authentication,Low,21,5.1,2,4.4,0
+CASE-00133,CUST-0023,2026-01-17,AnalyticsHub,Billing,Medium,21,8.3,2,3.5,0
+CASE-00134,CUST-0011,2025-12-23,CloudStore Platform,Configuration,High,24,13.3,4,2.7,0
+CASE-00135,CUST-0015,2026-01-29,SecureVault,Security,Medium,12,8.6,1,3.6,0
+CASE-00136,CUST-0044,2026-02-08,DataSync Pro,Performance,Medium,18,11.8,3,2.3,0
+CASE-00137,CUST-0041,2026-01-24,SecureVault,Security,High,27,13.6,4,3.4,0
+CASE-00138,CUST-0007,2025-12-31,AnalyticsHub,Feature Request,Medium,23,11.0,1,3.9,0
+CASE-00139,CUST-0043,2026-01-20,SecureVault,Login/Authentication,Medium,20,11.8,2,3.8,0
+CASE-00140,CUST-0019,2025-12-30,API Gateway,Feature Request,Medium,19,13.4,5,4.4,0
+CASE-00141,CUST-0044,2026-02-23,DataSync Pro,Performance,Critical,31,12.9,4,3.4,1
+CASE-00142,CUST-0029,2025-12-05,API Gateway,Feature Request,High,13,13.3,4,3.0,0
+CASE-00143,CUST-0048,2026-01-23,DataSync Pro,Data Loss,Low,14,4.1,4,4.2,0
+CASE-00144,CUST-0011,2026-01-02,AnalyticsHub,Integration,High,37,15.8,5,3.6,0
+CASE-00145,CUST-0005,2025-12-19,DataSync Pro,Configuration,Critical,35,16.6,6,2.1,0
+CASE-00146,CUST-0006,2026-01-20,CloudStore Platform,Integration,Medium,14,7.1,5,3.9,0
+CASE-00147,CUST-0038,2026-01-18,SecureVault,Performance,High,29,7.2,2,4.6,0
+CASE-00148,CUST-0040,2025-12-29,CloudStore Platform,Security,Critical,22,14.9,5,3.9,0
+CASE-00149,CUST-0009,2025-12-06,CloudStore Platform,Integration,Critical,22,15.1,6,3.6,1
+CASE-00150,CUST-0035,2025-12-18,AnalyticsHub,Security,Medium,15,13.9,1,3.6,0
+CASE-00151,CUST-0038,2025-12-20,AnalyticsHub,Performance,High,24,10.0,3,4.3,0
+CASE-00152,CUST-0003,2026-02-27,SecureVault,Data Loss,Medium,17,8.1,4,3.1,0
+CASE-00153,CUST-0044,2026-01-17,API Gateway,Feature Request,Low,16,1.8,4,4.1,0
+CASE-00154,CUST-0030,2025-12-12,DataSync Pro,Login/Authentication,Low,16,8.5,1,3.3,0
+CASE-00155,CUST-0037,2025-12-27,CloudStore Platform,Data Loss,Medium,25,11.1,2,4.2,0
+CASE-00156,CUST-0050,2025-12-19,API Gateway,Login/Authentication,Medium,20,15.5,5,4.2,0
+CASE-00157,CUST-0012,2025-12-15,CloudStore Platform,Billing,Low,12,13.4,2,3.3,0
+CASE-00158,CUST-0002,2025-12-23,SecureVault,Login/Authentication,Low,8,5.4,2,4.6,0
+CASE-00159,CUST-0048,2025-12-09,AnalyticsHub,Security,High,27,15.5,4,4.4,1
+CASE-00160,CUST-0029,2026-02-03,DataSync Pro,Login/Authentication,High,32,10.0,6,3.2,0
+CASE-00161,CUST-0030,2026-02-21,CloudStore Platform,Login/Authentication,Critical,16,16.2,8,3.1,0
+CASE-00162,CUST-0044,2025-12-14,AnalyticsHub,Security,Low,12,10.8,3,4.6,0
+CASE-00163,CUST-0005,2025-12-17,SecureVault,Feature Request,Medium,18,6.2,4,3.4,0
+CASE-00164,CUST-0030,2026-02-03,API Gateway,Configuration,Low,12,2.8,4,3.5,0
+CASE-00165,CUST-0028,2026-01-27,DataSync Pro,Configuration,Medium,24,8.8,4,4.3,0
+CASE-00166,CUST-0047,2025-12-13,SecureVault,Configuration,Medium,20,13.7,6,3.2,0
+CASE-00167,CUST-0044,2026-01-30,CloudStore Platform,Performance,High,29,14.6,4,4.3,0
+CASE-00168,CUST-0048,2026-01-17,DataSync Pro,Login/Authentication,Medium,9,5.9,4,5.0,0
+CASE-00169,CUST-0043,2025-12-16,AnalyticsHub,Feature Request,High,21,8.2,1,4.0,0
+CASE-00170,CUST-0019,2026-02-15,SecureVault,Feature Request,Low,15,7.9,6,3.2,0
+CASE-00171,CUST-0043,2026-01-31,DataSync Pro,Performance,Medium,32,17.5,2,4.0,0
+CASE-00172,CUST-0049,2026-01-05,API Gateway,Data Loss,High,19,10.8,6,3.2,0
+CASE-00173,CUST-0039,2026-02-23,SecureVault,Login/Authentication,Low,10,10.5,2,4.5,0
+CASE-00174,CUST-0023,2025-12-01,DataSync Pro,Billing,Medium,12,9.3,7,5.0,0
+CASE-00175,CUST-0048,2026-02-20,CloudStore Platform,Performance,High,13,13.1,5,3.4,0
+CASE-00176,CUST-0030,2026-01-13,DataSync Pro,Feature Request,Medium,14,8.8,4,4.4,0
+CASE-00177,CUST-0004,2025-12-20,DataSync Pro,Login/Authentication,High,28,10.4,3,4.0,0
+CASE-00178,CUST-0032,2026-02-16,AnalyticsHub,Configuration,Medium,11,13.5,1,3.9,0
+CASE-00179,CUST-0023,2026-01-25,CloudStore Platform,Integration,High,20,9.9,6,1.9,0
+CASE-00180,CUST-0003,2025-12-29,AnalyticsHub,Login/Authentication,Low,11,8.1,3,3.5,0
+CASE-00181,CUST-0049,2026-01-02,SecureVault,Feature Request,Low,13,4.6,4,3.5,0
+CASE-00182,CUST-0009,2026-01-18,API Gateway,Data Loss,Medium,16,8.8,6,4.2,0
+CASE-00183,CUST-0026,2025-12-06,AnalyticsHub,Login/Authentication,Medium,24,8.1,3,3.1,0
+CASE-00184,CUST-0037,2026-01-21,AnalyticsHub,Integration,Low,16,6.2,2,3.9,0
+CASE-00185,CUST-0040,2026-01-28,SecureVault,Performance,Medium,13,9.5,1,3.1,0
+CASE-00186,CUST-0038,2026-01-21,API Gateway,Performance,Medium,13,7.3,3,3.9,0
+CASE-00187,CUST-0022,2025-12-22,CloudStore Platform,Performance,Medium,17,9.5,2,3.8,0
+CASE-00188,CUST-0047,2026-02-21,DataSync Pro,Data Loss,Low,15,7.9,3,2.9,0
+CASE-00189,CUST-0039,2025-12-20,CloudStore Platform,Billing,Critical,33,9.8,6,3.7,1
+CASE-00190,CUST-0049,2026-02-11,API Gateway,Security,High,24,15.4,4,3.2,0
+CASE-00191,CUST-0041,2026-01-10,DataSync Pro,Security,Low,11,10.2,1,3.0,0
+CASE-00192,CUST-0038,2025-12-08,SecureVault,Performance,Medium,19,14.1,4,2.9,0
+CASE-00193,CUST-0024,2026-01-06,CloudStore Platform,Performance,High,27,8.1,5,4.2,0
+CASE-00194,CUST-0038,2026-02-09,CloudStore Platform,Security,Critical,30,16.1,6,4.3,0
+CASE-00195,CUST-0039,2026-01-30,API Gateway,Billing,Critical,31,12.2,6,3.2,0
+CASE-00196,CUST-0046,2025-12-11,API Gateway,Billing,Low,18,8.5,5,2.8,0
+CASE-00197,CUST-0034,2026-02-05,API Gateway,Billing,Medium,16,9.7,6,4.7,0
+CASE-00198,CUST-0050,2026-01-13,API Gateway,Login/Authentication,High,27,9.7,7,4.1,0
+CASE-00199,CUST-0022,2025-12-13,API Gateway,Configuration,Medium,24,8.6,3,2.6,0
+CASE-00200,CUST-0022,2025-12-11,API Gateway,Billing,Critical,28,16.7,6,4.0,0

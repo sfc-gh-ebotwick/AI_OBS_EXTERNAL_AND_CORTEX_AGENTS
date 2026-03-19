@@ -1,0 +1,83 @@
+# Marketing Campaign Agent Evaluation Configuration
+# Evaluation metrics for answer correctness, logical consistency, tool selection accuracy, execution efficiency and groundedness
+# Based on TruLens Agent GPA evaluation methodology
+
+# Optional: Create dataset from existing evals table (we've already done this in the SETUP.sql)
+# dataset:
+#   dataset_type: cortex agent
+#   table_name: MARKETING_CAMPAIGNS_DB.AGENTS.EVALS_TABLE
+#   dataset_name: MARKETING_CAMPAIGNS_DB.AGENTS.MARKETING_CAMPAIGN_EVALSET_YAML_CREATED
+#   column_mapping:
+#     query_text: INPUT_QUERY
+#     ground_truth: GROUND_TRUTH_DATA
+
+# Evaluation task configuration
+evaluation:
+  agent_params:
+    agent_name: CUST_SUPPORT_DEMO.SUPPORT.SUPPORT_AGENT
+    agent_type: CORTEX AGENT
+  run_params:
+    label: Customer Support Agent Evaluation
+    description: Evaluating Answer Correctness, Logical Consistency, Execution Efficiency and Groundedness metrics for the customer support agent
+  source_metadata:
+    type: dataset
+    dataset_name: CUST_SUPPORT_DEMO.SUPPORT.AGENT_EVAL_DATA_V2
+
+metrics:
+  # Built-in metrics
+  - answer_correctness
+  - logical_consistency
+
+  # Custom Metrics
+
+  # Groundedness metric - TruLens Agent GPA based evaluation
+  # Evaluates whether the agent's response is supported by the execution trace
+  - name: groundedness
+    score_ranges:
+      min_score: [0, 0.33]
+      median_score: [0.34, 0.66]
+      max_score: [0.67, 1]
+    prompt: |
+      You are evaluating the groundedness of an AI agent's response. Groundedness measures
+      whether each substantive claim in the response is supported by concrete evidence in
+      the execution trace.
+
+      IMPORTANT: Evaluate claim-to-result alignment, not claim-to-tool-type alignment.
+      A claim is grounded only if the required evidence appears in actual tool outputs,
+      retrieved rows/snippets, report outputs, or other trace context.
+
+      Agent Response to Evaluate:
+      {{output}}
+
+      The complete agent execution trace is provided as context, including:
+      - All tool calls made (query_performance_metrics, search_campaign_content, generate_campaign_report)
+      - Tool outputs and retrieved data
+      - Intermediate reasoning steps
+
+      Here are a few examples of groundedness scores:
+
+      0 (Not Grounded):
+        - Key claims are unsupported, contradicted, or fabricated relative to tool results
+        - Superlative/comparative conclusions ("most compelling", "most alike", "best")
+          are made without evidence from returned results
+        - Report responses invent artifact details, KPIs, or findings not present in outputs
+
+      0.5 (Partially Grounded):
+        - Some important claims are evidence-backed, but at least one material conclusion
+          is weakly supported or not directly shown in results
+        - Comparison conclusion is plausible but incomplete (limited evidence or missing tie-break rationale)
+        - Report output details are partially accurate but omit or blur key result-backed facts
+
+      1 (Fully Grounded):
+        - All material claims are traceable to concrete evidence in tool results
+        - Metrics, campaign attributes, and report details match retrieved outputs
+        - Comparative/superlative conclusions are justified using explicit evidence
+        - When evidence is incomplete, the response states uncertainty instead of guessing
+
+      Consider:
+      - Are revenue figures, ROI percentages, and other metrics supported by result rows?
+      - Are campaign descriptions, A/B notes, and feedback grounded in returned snippets?
+      - For report requests, does the response accurately reflect report generation output
+        (artifact/link/name) and avoid fabricated details?
+      - For capability/meta queries, tool calls may be unnecessary; still require claims
+        to align with supported behavior and trace context, without over-claiming.
