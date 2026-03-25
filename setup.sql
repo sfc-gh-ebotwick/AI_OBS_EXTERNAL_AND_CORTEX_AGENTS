@@ -22,7 +22,7 @@ CREATE OR REPLACE TABLE SUPPORT_CASES (
     ISSUE_CATEGORY VARCHAR(100),
     ISSUE_SUMMARY VARCHAR(5000),
     RESOLUTION_SUMMARY VARCHAR(5000),
-    AGENT_NAME VARCHAR(100),
+    REP_NAME VARCHAR(100),
     STATUS VARCHAR(50),
     PRIORITY VARCHAR(20)
 );
@@ -72,7 +72,7 @@ CREATE OR REPLACE FILE FORMAT SUPPORT_AGENT_CSV_FORMAT
   COMPRESSION = 'AUTO';
 
 
-INSERT INTO SUPPORT_CASES (CASE_ID, CUSTOMER_ID, CASE_DATE, PRODUCT, ISSUE_CATEGORY, ISSUE_SUMMARY, RESOLUTION_SUMMARY, AGENT_NAME, STATUS, PRIORITY)
+INSERT INTO SUPPORT_CASES (CASE_ID, CUSTOMER_ID, CASE_DATE, PRODUCT, ISSUE_CATEGORY, ISSUE_SUMMARY, RESOLUTION_SUMMARY, REP_NAME, STATUS, PRIORITY)
 SELECT $1, $2, $3, $4, $5, $6, $7, $8, $9, $10
 FROM @CORTEX_AGENT_QUICKSTART_REPO/branches/main/data/SUPPORT_CASES.csv (FILE_FORMAT=>SUPPORT_AGENT_CSV_FORMAT);
 
@@ -334,13 +334,13 @@ tables:
       schema: SUPPORT
       table: REP_PERFORMANCE
     dimensions:
-      - name: AGENT_NAME
+      - name: REP_NAME
         synonyms:
           - agent
           - support agent
           - representative
         description: Name of the support agent
-        expr: AGENT_NAME
+        expr: REP_NAME
         data_type: VARCHAR
     time_dimensions:
       - name: WEEK_START
@@ -422,9 +422,9 @@ verified_queries:
     question: Which agents handled the most cases?
     use_as_onboarding_question: true
     sql: |
-      SELECT AGENT_NAME, SUM(CASES_HANDLED) AS TOTAL_CASES
+      SELECT REP_NAME, SUM(CASES_HANDLED) AS TOTAL_CASES
       FROM CUST_SUPPORT_DEMO.SUPPORT.REP_PERFORMANCE
-      GROUP BY AGENT_NAME
+      GROUP BY REP_NAME
       ORDER BY TOTAL_CASES DESC
   - name: escalation_rate_by_priority
     question: What is the escalation rate for each priority level?
@@ -445,7 +445,7 @@ $$
 -- 6. Cortex Search Service (for unstructured case detail lookups)
 CREATE OR REPLACE CORTEX SEARCH SERVICE CASE_SEARCH_SERVICE
     ON ISSUE_SUMMARY
-    ATTRIBUTES CASE_ID, CUSTOMER_ID, PRODUCT, ISSUE_CATEGORY, PRIORITY, STATUS, AGENT_NAME
+    ATTRIBUTES CASE_ID, CUSTOMER_ID, PRODUCT, ISSUE_CATEGORY, PRIORITY, STATUS, REP_NAME
     WAREHOUSE = COMPUTE_WH
     TARGET_LAG = '1 hour'
     AS (
@@ -457,7 +457,7 @@ CREATE OR REPLACE CORTEX SEARCH SERVICE CASE_SEARCH_SERVICE
             ISSUE_CATEGORY,
             ISSUE_SUMMARY || ' Resolution: ' || RESOLUTION_SUMMARY AS ISSUE_SUMMARY,
             RESOLUTION_SUMMARY,
-            AGENT_NAME,
+            REP_NAME,
             STATUS,
             PRIORITY
         FROM CUST_SUPPORT_DEMO.SUPPORT.SUPPORT_CASES
