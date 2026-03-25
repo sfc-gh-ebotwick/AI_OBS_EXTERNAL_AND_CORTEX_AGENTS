@@ -61,6 +61,11 @@ CREATE OR REPLACE TABLE REP_PERFORMANCE (
     ESCALATION_RATE FLOAT
 );
 
+CREATE OR REPLACE TABLE EVAL_DATA (
+    INPUT_QUERY TEXT,
+    GROUND_TRUTH_DATA OBJECT);
+);
+
 -- 4. Load CSV data from git repo
 
 -- First create a file format to use when reading data from github
@@ -88,6 +93,12 @@ FROM @CORTEX_AGENT_QUICKSTART_REPO/branches/main/data/DAILY_SUPPORT_METRICS.csv 
 INSERT INTO REP_PERFORMANCE (REP_NAME, WEEK_START, CASES_HANDLED, CASES_RESOLVED, AVG_RESOLUTION_TIME_HOURS, AVG_CSAT_SCORE, ESCALATION_RATE)
 SELECT $1, $2, $3, $4, $5, $6, $7
 FROM @CORTEX_AGENT_QUICKSTART_REPO/branches/main/data/REP_PERFORMANCE.csv (FILE_FORMAT=>SUPPORT_AGENT_CSV_FORMAT);
+
+-- Populate EVALS_TABLE table
+INSERT INTO EVALS_TABLE (input_query, ground_truth)
+SELECT $1, $2
+FROM @@CORTEX_AGENT_QUICKSTART_REPO/branches/main/data/EVAL_DATA.csv (FILE_FORMAT=>SUPPORT_AGENT_CSV_FORMAT);
+
 
 -- 5. Semantic View (for Cortex Analyst structured data queries)
 CALL SYSTEM$CREATE_SEMANTIC_VIEW_FROM_YAML(
@@ -181,7 +192,7 @@ tables:
           - first response time
           - initial response time
           - FRT
-        description: Time in minutes from case creation to first agent response
+        description: Time in minutes from case creation to first rep response
         expr: FIRST_RESPONSE_TIME_MINS
         data_type: NUMBER
       - name: RESOLUTION_TIME_HOURS
@@ -197,7 +208,7 @@ tables:
           - interactions
           - touchpoints
           - number of contacts
-        description: Total number of interactions between agent and customer for this case
+        description: Total number of interactions between rep and customer for this case
         expr: NUM_INTERACTIONS
         data_type: NUMBER
       - name: CSAT_SCORE
@@ -336,10 +347,11 @@ tables:
     dimensions:
       - name: REP_NAME
         synonyms:
+          - rep
+          - support rep
           - agent
-          - support agent
           - representative
-        description: Name of the support agent
+        description: Name of the support rep
         expr: REP_NAME
         data_type: VARCHAR
     time_dimensions:
@@ -356,49 +368,49 @@ tables:
         synonyms:
           - cases worked
           - tickets handled
-        description: Number of cases handled by the agent in the week
+        description: Number of cases handled by the rep in the week
         expr: CASES_HANDLED
         data_type: NUMBER
       - name: CASES_RESOLVED
         synonyms:
           - cases closed
           - tickets resolved
-        description: Number of cases resolved by the agent in the week
+        description: Number of cases resolved by the rep in the week
         expr: CASES_RESOLVED
         data_type: NUMBER
       - name: AVG_RESOLUTION_TIME_HOURS
-        description: Average resolution time in hours for the agent that week
+        description: Average resolution time in hours for the rep that week
         expr: AVG_RESOLUTION_TIME_HOURS
         data_type: FLOAT
       - name: AVG_CSAT_SCORE
-        description: Average CSAT score for the agent that week
+        description: Average CSAT score for the rep that week
         expr: AVG_CSAT_SCORE
         data_type: FLOAT
       - name: ESCALATION_RATE
-        description: Fraction of cases escalated by the agent that week
+        description: Fraction of cases escalated by the rep that week
         expr: ESCALATION_RATE
         data_type: FLOAT
     metrics:
-      - name: TOTAL_AGENT_CASES
+      - name: TOTAL_REP_CASES
         synonyms:
           - total handled
-        description: Total cases handled by agent
+        description: Total cases handled by rep
         expr: SUM(REP_PERFORMANCE.CASES_HANDLED)
-      - name: TOTAL_AGENT_RESOLVED
-        description: Total cases resolved by agent
+      - name: TOTAL_REP_RESOLVED
+        description: Total cases resolved by rep
         expr: SUM(REP_PERFORMANCE.CASES_RESOLVED)
-      - name: AGENT_AVG_CSAT
+      - name: REP_AVG_CSAT
         synonyms:
-          - agent satisfaction
-        description: Average CSAT across all weeks for the agent
+          - rep satisfaction
+        description: Average CSAT across all weeks for the rep
         expr: AVG(REP_PERFORMANCE.AVG_CSAT_SCORE)
-      - name: AGENT_AVG_RESOLUTION_TIME
-        description: Average resolution time across all weeks for the agent
+      - name: REP_AVG_RESOLUTION_TIME
+        description: Average resolution time across all weeks for the rep
         expr: AVG(REP_PERFORMANCE.AVG_RESOLUTION_TIME_HOURS)
-      - name: AGENT_AVG_ESCALATION_RATE
+      - name: REP_AVG_ESCALATION_RATE
         synonyms:
-          - agent escalation rate
-        description: Average escalation rate across all weeks for the agent
+          - rep escalation rate
+        description: Average escalation rate across all weeks for the rep
         expr: AVG(REP_PERFORMANCE.ESCALATION_RATE)
 
 verified_queries:
@@ -418,8 +430,8 @@ verified_queries:
       FROM CUST_SUPPORT_DEMO.SUPPORT.CASE_METRICS
       GROUP BY ISSUE_CATEGORY
       ORDER BY AVG_CSAT DESC
-  - name: top_agents_by_volume
-    question: Which agents handled the most cases?
+  - name: top_reps_by_volume
+    question: Which reps handled the most cases?
     use_as_onboarding_question: true
     sql: |
       SELECT REP_NAME, SUM(CASES_HANDLED) AS TOTAL_CASES
@@ -465,14 +477,14 @@ CREATE OR REPLACE CORTEX SEARCH SERVICE CASE_SEARCH_SERVICE
 
 -- 7. Cortex Agent (ties Analyst + Search together)
 CREATE OR REPLACE AGENT SUPPORT_AGENT
-    COMMENT = 'Customer Support AI Agent - answers questions about support metrics, case details, and agent performance'
+    COMMENT = 'Customer Support AI Agent - answers questions about support metrics, case details, and support rep performance'
     FROM SPECIFICATION $$
 models:
   orchestration: auto
 instructions:
   response: >
     You are a helpful customer support analytics assistant. Answer questions about support case
-    metrics, agent performance, daily trends, and specific case details. Be concise and data-driven.
+    metrics, rep performance, daily trends, and specific case details. Be concise and data-driven.
     When presenting numbers, use appropriate formatting. When asked about specific cases or issues,
     search the case database for relevant details.
   orchestration: >
@@ -485,8 +497,8 @@ instructions:
       answer: "I'll query the support analytics data to get average CSAT scores broken down by product."
     - question: "Find cases related to authentication issues"
       answer: "I'll search the case database for cases involving authentication problems."
-    - question: "Which agent has the best resolution time?"
-      answer: "I'll look at the agent performance data to find who has the fastest average resolution times."
+    - question: "Which rep has the best resolution time?"
+      answer: "I'll look at the rep performance data to find who has the fastest average resolution times."
     - question: "Show me the trend of daily escalations"
       answer: "I'll query the daily support metrics to show the escalation trend over time."
 tools:
@@ -495,9 +507,9 @@ tools:
       name: "SupportAnalytics"
       description: >
         Use this tool for quantitative questions about support metrics. This includes case counts,
-        average CSAT scores, resolution times, first response times, escalation rates, agent
+        average CSAT scores, resolution times, first response times, escalation rates, rep
         performance comparisons, daily/weekly trends, and breakdowns by product, category, priority,
-        or agent. Use this for any question that requires aggregation, filtering, or numerical analysis.
+        or rep. Use this for any question that requires aggregation, filtering, or numerical analysis.
   - tool_spec:
       type: "cortex_search"
       name: "CaseSearch"
@@ -519,7 +531,7 @@ $$;
 SHOW GRANTS OF DATABASE ROLE SNOWFLAKE.CORTEX_USER;
 GRANT EXECUTE TASK ON ACCOUNT TO ROLE ACCOUNTADMIN;
 
-DESCRIBE TABLE CUST_SUPPORT_DEMO.SUPPORT.AGENT_EVAL_DATA;
+SELECT * FROM CUST_SUPPORT_DEMO.SUPPORT.AGENT_EVAL_DATA;
 
 -- First we will create a dataset to use for evaluating our agent
 CALL SYSTEM$CREATE_EVALUATION_DATASET(

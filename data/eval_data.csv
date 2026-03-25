@@ -1,0 +1,31 @@
+INPUT_QUERY,GROUND_TRUTH
+What is the average CSAT score by product?,"{
+  ""ground_truth_output"": ""The average CSAT scores by product are: AnalyticsHub: 3.89, SecureVault: 3.84, API Gateway: 3.83, DataSync Pro: 3.79, CloudStore Platform: 3.77.""
+}"
+Which rep has the fastest average resolution time?,"{
+  ""ground_truth_output"": ""Rachel Foster has the fastest average resolution time at 8.38 hours, followed by Carlos Garcia at 8.41 hours, Sarah Chen at 8.65 hours, Tom Martinez at 8.73 hours, and James Wilson at 9.03 hours.""
+}"
+What is the escalation rate for Critical priority cases?,"{
+  ""ground_truth_output"": ""The escalation rate for Critical priority cases is 20.00%. Out of 25 Critical cases, 5 were escalated.""
+}"
+Show me the daily trend of total cases over the last month,"{
+  ""ground_truth_output"": ""The daily total cases from late January to late February 2026 range from 5 to 19 per day. Recent notable days include Feb 28: 18 cases, Feb 27: 17, Feb 26: 5, Feb 25: 10, Feb 20: 19, Feb 18: 17, Feb 16: 18, Feb 3: 19.""
+}"
+How many cases were there for each issue category?,"{
+  ""ground_truth_output"": ""Case counts by issue category: Login/Authentication: 32, Security: 27, Configuration: 26, Integration: 25, Data Loss: 25, Performance: 23, Feature Request: 23, Billing: 19. Total: 200 cases across 8 categories.""
+}"
+Find cases related to authentication or login failures,"{
+  ""ground_truth_output"": ""Relevant cases include: CASE-00016 and CASE-00030 about suspicious login activity from unknown IP addresses on multiple accounts, and CASE-00037 about an account locked after multiple failed login attempts from automated scripts.""
+}"
+What resolutions were used for data loss issues?,"{
+  ""ground_truth_output"": ""Data loss cases include: CASE-00007 about data synchronization failure resulting in partial data in the staging environment, and CASE-00011 and CASE-00013 about export jobs producing incomplete CSV files missing the last several thousand rows.""
+}"
+Search for cases involving API integration problems,"{
+  ""ground_truth_output"": ""API integration cases include: CASE-00009 about a REST API returning inconsistent schema in responses breaking the customer ETL pipeline, and CASE-00024 and CASE-00031 about SSO integration failing with SAML assertion errors for enterprise accounts.""
+}"
+What billing issues have customers reported and how were they resolved?,"{
+  ""ground_truth_output"": ""Billing issues include: CASE-00015 about a customer charged twice for monthly subscription renewal, and CASE-00018 and CASE-00021 about usage-based charges not matching the customer internal tracking metrics.""
+}"
+"What is the average first response time by priority level, and show me an example of a Critical case?","{
+  ""ground_truth_output"": ""Average first response time by priority: Low: 14.43 minutes, Medium: 17.42 minutes, High: 22.53 minutes, Critical: 29.56 minutes. An example Critical case is CASE-00006: Batch data import jobs timing out when processing files over 500MB, with a first response time of 38 minutes.""
+}"
