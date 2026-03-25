@@ -51,8 +51,8 @@ CREATE OR REPLACE TABLE DAILY_SUPPORT_METRICS (
     AVG_FIRST_RESPONSE_MINS FLOAT
 );
 
-CREATE OR REPLACE TABLE AGENT_PERFORMANCE (
-    AGENT_NAME VARCHAR(100),
+CREATE OR REPLACE TABLE REP_PERFORMANCE (
+    REP_NAME VARCHAR(100),
     WEEK_START DATE,
     CASES_HANDLED INTEGER,
     CASES_RESOLVED INTEGER,
@@ -61,11 +61,33 @@ CREATE OR REPLACE TABLE AGENT_PERFORMANCE (
     ESCALATION_RATE FLOAT
 );
 
--- 4. Load CSV data from stage
-COPY INTO SUPPORT_CASES FROM @CSV_STAGE/support_cases.csv;
-COPY INTO CASE_METRICS FROM @CSV_STAGE/case_metrics.csv;
-COPY INTO DAILY_SUPPORT_METRICS FROM @CSV_STAGE/daily_support_metrics.csv;
-COPY INTO AGENT_PERFORMANCE FROM @CSV_STAGE/agent_performance.csv;
+-- 4. Load CSV data from git repo
+
+-- First create a file format to use when reading data from github
+CREATE OR REPLACE FILE FORMAT SUPPORT_AGENT_CSV_FORMAT
+  TYPE = 'CSV'
+  FIELD_DELIMITER = ','
+  SKIP_HEADER = 1
+  FIELD_OPTIONALLY_ENCLOSED_BY = '"'
+  COMPRESSION = 'AUTO';
+
+
+INSERT INTO SUPPORT_CASES (CASE_ID, CUSTOMER_ID, CASE_DATE, PRODUCT, ISSUE_CATEGORY, ISSUE_SUMMARY, RESOLUTION_SUMMARY, AGENT_NAME, STATUS, PRIORITY)
+SELECT $1, $2, $3, $4, $5, $6, $7, $8, $9, $10
+FROM @CORTEX_AGENT_QUICKSTART_REPO/branches/main/data/SUPPORT_CASES.csv (FILE_FORMAT=>SUPPORT_AGENT_CSV_FORMAT);
+
+
+INSERT INTO CASE_METRICS (CASE_ID, CUSTOMER_ID, CASE_DATE, PRODUCT, ISSUE_CATEGORY, PRIORITY, FIRST_RESPONSE_TIME_MINS, RESOLUTION_TIME_HOURS, NUM_INTERACTIONS, CSAT_SCORE, ESCALATED)
+SELECT $1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11
+FROM @CORTEX_AGENT_QUICKSTART_REPO/branches/main/data/CASE_METRICS.csv (FILE_FORMAT=>SUPPORT_AGENT_CSV_FORMAT);
+
+INSERT INTO DAILY_SUPPORT_METRICS (METRIC_DATE, TOTAL_CASES, CASES_RESOLVED, CASES_ESCALATED, AVG_RESOLUTION_TIME_HOURS, AVG_CSAT_SCORE, AVG_FIRST_RESPONSE_MINS)
+SELECT $1, $2, $3, $4, $5, $6, $7
+FROM @CORTEX_AGENT_QUICKSTART_REPO/branches/main/data/DAILY_SUPPORT_METRICS.csv (FILE_FORMAT=>SUPPORT_AGENT_CSV_FORMAT);
+
+INSERT INTO REP_PERFORMANCE (REP_NAME, WEEK_START, CASES_HANDLED, CASES_RESOLVED, AVG_RESOLUTION_TIME_HOURS, AVG_CSAT_SCORE, ESCALATION_RATE)
+SELECT $1, $2, $3, $4, $5, $6, $7
+FROM @CORTEX_AGENT_QUICKSTART_REPO/branches/main/data/REP_PERFORMANCE.csv (FILE_FORMAT=>SUPPORT_AGENT_CSV_FORMAT);
 
 -- 5. Semantic View (for Cortex Analyst structured data queries)
 CALL SYSTEM$CREATE_SEMANTIC_VIEW_FROM_YAML(
@@ -305,12 +327,12 @@ tables:
         description: Average of the daily resolution times in hours
         expr: AVG(DAILY_SUPPORT_METRICS.AVG_RESOLUTION_TIME_HOURS)
 
-  - name: AGENT_PERFORMANCE
-    description: Weekly agent performance metrics including cases handled, resolution rates, satisfaction, and escalation rates.
+  - name: REP_PERFORMANCE
+    description: Weekly rep performance metrics including cases handled, resolution rates, satisfaction, and escalation rates.
     base_table:
       database: CUST_SUPPORT_DEMO
       schema: SUPPORT
-      table: AGENT_PERFORMANCE
+      table: REP_PERFORMANCE
     dimensions:
       - name: AGENT_NAME
         synonyms:
@@ -361,23 +383,23 @@ tables:
         synonyms:
           - total handled
         description: Total cases handled by agent
-        expr: SUM(AGENT_PERFORMANCE.CASES_HANDLED)
+        expr: SUM(REP_PERFORMANCE.CASES_HANDLED)
       - name: TOTAL_AGENT_RESOLVED
         description: Total cases resolved by agent
-        expr: SUM(AGENT_PERFORMANCE.CASES_RESOLVED)
+        expr: SUM(REP_PERFORMANCE.CASES_RESOLVED)
       - name: AGENT_AVG_CSAT
         synonyms:
           - agent satisfaction
         description: Average CSAT across all weeks for the agent
-        expr: AVG(AGENT_PERFORMANCE.AVG_CSAT_SCORE)
+        expr: AVG(REP_PERFORMANCE.AVG_CSAT_SCORE)
       - name: AGENT_AVG_RESOLUTION_TIME
         description: Average resolution time across all weeks for the agent
-        expr: AVG(AGENT_PERFORMANCE.AVG_RESOLUTION_TIME_HOURS)
+        expr: AVG(REP_PERFORMANCE.AVG_RESOLUTION_TIME_HOURS)
       - name: AGENT_AVG_ESCALATION_RATE
         synonyms:
           - agent escalation rate
         description: Average escalation rate across all weeks for the agent
-        expr: AVG(AGENT_PERFORMANCE.ESCALATION_RATE)
+        expr: AVG(REP_PERFORMANCE.ESCALATION_RATE)
 
 verified_queries:
   - name: total_cases_by_product
@@ -401,7 +423,7 @@ verified_queries:
     use_as_onboarding_question: true
     sql: |
       SELECT AGENT_NAME, SUM(CASES_HANDLED) AS TOTAL_CASES
-      FROM CUST_SUPPORT_DEMO.SUPPORT.AGENT_PERFORMANCE
+      FROM CUST_SUPPORT_DEMO.SUPPORT.REP_PERFORMANCE
       GROUP BY AGENT_NAME
       ORDER BY TOTAL_CASES DESC
   - name: escalation_rate_by_priority
