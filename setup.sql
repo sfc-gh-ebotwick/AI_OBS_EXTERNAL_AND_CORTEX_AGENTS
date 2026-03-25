@@ -491,3 +491,40 @@ tool_resources:
     name: "CUST_SUPPORT_DEMO.SUPPORT.CASE_SEARCH_SERVICE"
     max_results: "5"
 $$;
+
+-- 7. Run Evaluations
+
+SHOW GRANTS OF DATABASE ROLE SNOWFLAKE.CORTEX_USER;
+GRANT EXECUTE TASK ON ACCOUNT TO ROLE ACCOUNTADMIN;
+
+DESCRIBE TABLE CUST_SUPPORT_DEMO.SUPPORT.AGENT_EVAL_DATA;
+
+-- First we will create a dataset to use for evaluating our agent
+CALL SYSTEM$CREATE_EVALUATION_DATASET(
+    'Cortex Agent',
+    'CUST_SUPPORT_DEMO.SUPPORT.AGENT_EVAL_DATA',
+    'CUST_SUPPORT_DEMO.SUPPORT.SUPPORT_AGENT_EVAL_DATA',
+    OBJECT_CONSTRUCT('query_text', 'INPUT_QUERY', 'expected_tools', 'GROUND_TRUTH'));
+
+
+-- Confirm dataset creation
+SHOW DATASETS IN SCHEMA CUST_SUPPORT_DEMO.SUPPORT;
+-- Next we will create a stage to store our evaluation config file
+CREATE OR REPLACE STAGE CUST_SUPPORT_DEMO.SUPPORT.EVAL_CONFIG_STAGE
+  DIRECTORY = (ENABLE = TRUE)
+  COMMENT = 'Internal stage to host evaluation config files';
+
+-- !!!! ACTION REQUIRED!!!! --
+-- Upload the support_agent_eval_config.yaml file to the stage
+
+-- Confirm yaml was uploaded
+LS @CUST_SUPPORT_DEMO.SUPPORT.EVAL_CONFIG_STAGE;
+
+USE SCHEMA CUST_SUPPORT_DEMO.SUPPORT;
+
+-- Kickoff evaluation run using yaml config
+CALL EXECUTE_AI_EVALUATION(
+  'START',
+  OBJECT_CONSTRUCT('run_name', 'SUPPORT_AGENT_EVAL_RUN_v2'),
+  '@CUST_SUPPORT_DEMO.SUPPORT.EVAL_CONFIG_STAGE/support_agent_eval_config.yaml'
+);
