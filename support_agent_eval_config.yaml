@@ -12,7 +12,7 @@ evaluation:
     description: Evaluating Answer Correctness, Logical Consistency, Execution Efficiency and Groundedness metrics for the customer support agent
   source_metadata:
     type: dataset
-    dataset_name: CUST_SUPPORT_DEMO.SUPPORT.SUPPORT_AGENT_EVAL_DATA
+    dataset_name: CUST_SUPPORT_DEMO.SUPPORT.SUPPORT_AGENT_EVAL_DATASET
 
 metrics:
   # Built-in metrics
