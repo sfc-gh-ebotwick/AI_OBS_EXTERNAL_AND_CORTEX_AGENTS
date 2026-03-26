@@ -1,4 +1,4 @@
-INPUT_QUERY,GROUND_TRUTH
+INPUT_QUERY,GROUND_TRUTH_DATA
 What is the average CSAT score by product?,"{
   ""ground_truth_output"": ""The average CSAT scores by product are: AnalyticsHub: 3.89, SecureVault: 3.84, API Gateway: 3.83, DataSync Pro: 3.79, CloudStore Platform: 3.77.""
 }"
