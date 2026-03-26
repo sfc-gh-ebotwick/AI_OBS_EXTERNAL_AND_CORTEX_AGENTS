@@ -5,14 +5,14 @@
 # Evaluation task configuration
 evaluation:
   agent_params:
-    agent_name: CUST_SUPPORT_DEMO.SUPPORT.SUPPORT_AGENT
+    agent_name: CUST_SUPPORT_DEMO.AGENTS.SUPPORT_AGENT
     agent_type: CORTEX AGENT
   run_params:
     label: Customer Support Agent Evaluation
     description: Evaluating Answer Correctness, Logical Consistency, Execution Efficiency and Groundedness metrics for the customer support agent
   source_metadata:
     type: dataset
-    dataset_name: CUST_SUPPORT_DEMO.SUPPORT.SUPPORT_AGENT_EVAL_DATASET
+    dataset_name: CUST_SUPPORT_DEMO.AGENTS.SUPPORT_AGENT_EVAL_DATASET
 
 metrics:
   # Built-in metrics
