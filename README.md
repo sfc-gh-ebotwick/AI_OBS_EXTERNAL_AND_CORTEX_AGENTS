@@ -40,7 +40,7 @@ This project demonstrates that end-to-end by building **two customer support age
               └────────┬───────────┘    └────────┬────────────┘
                        │                         │
               ┌────────┴─────────────────────────┴─────────┐
-              │           SHARED TOOL LAYER                │
+              │            TOOL LAYER                      │
               │                                            │
               │  ┌────────────────┐  ┌──────────────────┐  │
               │  │ Cortex Search  │  │ Cortex Analyst   │  │
