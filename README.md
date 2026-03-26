@@ -19,10 +19,10 @@ This project demonstrates that end-to-end by building **two customer support age
 │   for ALL agents — Cortex-native and external alike                     │
 │                                                                         │
 │   ┌──────────────┐  ┌──────────────┐  ┌───────────┐  ┌──────────────┐  │
-│   │    Spans      │  │    Logs      │  │  Metrics  │  │  Eval Scores │  │
-│   │ (tool calls,  │  │ (debug info, │  │ (latency, │  │ (correctness,│  │
-│   │  retrieval,   │  │  errors)     │  │  tokens)  │  │  groundedness│  │
-│   │  generation)  │  │              │  │           │  │  coherence)  │  │
+│   │    Spans     │  │    Logs      │  │  Metrics  │  │  Eval Scores │  │
+│   │ (tool calls, │  │ (debug info, │  │ (latency, │  │ (correctness,│  │
+│   │  retrieval,  │  │  errors)     │  │  tokens)  │  │  groundedness│  │
+│   │  generation) │  │              │  │           │  │  coherence)  │  │
 │   └──────────────┘  └──────────────┘  └───────────┘  └──────────────┘  │
 └───────────────────────────┬─────────────────────┬───────────────────────┘
                             │                     │
