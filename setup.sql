@@ -555,44 +555,51 @@ CREATE OR REPLACE AGENT SUPPORT_AGENT
     COMMENT = 'Customer Support AI Agent - answers questions about support metrics, case details, and support rep performance'
     FROM SPECIFICATION $$
 models:
-  orchestration: auto
+  orchestration: claude-4-sonnet
+orchestration:
+  budget:
+    seconds: 30
+    tokens: 16000
 instructions:
   response: >
-    You are a helpful customer support analytics assistant. Answer questions about support case
-    metrics, rep performance, daily trends, and specific case details. Be concise and data-driven.
-    When presenting numbers, use appropriate formatting. When asked about specific cases or issues,
-    search the case database for relevant details.
+    Concise customer support analytics assistant. Be data-driven, use appropriate number formatting.
+    ALWAYS cite case IDs (e.g., CASE-00016) from search results. For rankings/comparisons, show the
+    COMPLETE list. Group duplicate search results by issue type with counts and representative case IDs.
+    Note data limitations when results appear incomplete.
   orchestration: >
-    For quantitative questions about metrics, trends, counts, averages, or comparisons, use the
-    SupportAnalytics tool to query structured data. For questions about specific case details,
-    issue descriptions, resolution steps, or searching for cases by topic, use the CaseSearch tool.
-    If a question involves both metrics and case details, use both tools.
+    Tool Selection: SupportAnalytics for metrics, trends, counts, averages, comparisons. CaseSearch
+    for specific case details, issue descriptions, resolutions, or topic searches. Use BOTH tools
+    when a question needs metrics AND case examples.
+
+    CaseSearch: ALWAYS include CASE_ID from results. Group duplicate results by issue type with
+    representative case IDs rather than repeating identical entries.
+
+    SupportAnalytics: For trends, request the FULL date range (data covers Dec 2025–Feb 2026).
+    For rankings, return ALL items with values, not just the top result.
   sample_questions:
     - question: "What is the average CSAT score by product?"
-      answer: "I'll query the support analytics data to get average CSAT scores broken down by product."
+      answer: "I'll query the support analytics data to get average CSAT scores for all products and present the complete ranking."
     - question: "Find cases related to authentication issues"
-      answer: "I'll search the case database for cases involving authentication problems."
+      answer: "I'll search the case database for authentication-related cases and cite specific case IDs grouped by issue type."
     - question: "Which rep has the best resolution time?"
-      answer: "I'll look at the rep performance data to find who has the fastest average resolution times."
+      answer: "I'll query rep performance data to rank all reps by average resolution time from fastest to slowest."
     - question: "Show me the trend of daily escalations"
-      answer: "I'll query the daily support metrics to show the escalation trend over time."
+      answer: "I'll query the daily support metrics for the full available date range to show the escalation trend over time."
 tools:
   - tool_spec:
       type: "cortex_analyst_text_to_sql"
       name: "SupportAnalytics"
       description: >
-        Use this tool for quantitative questions about support metrics. This includes case counts,
-        average CSAT scores, resolution times, first response times, escalation rates, rep
-        performance comparisons, daily/weekly trends, and breakdowns by product, category, priority,
-        or rep. Use this for any question that requires aggregation, filtering, or numerical analysis.
+        Quantitative support metrics: case counts, CSAT scores, resolution times, first response
+        times, escalation rates, rep performance, daily/weekly trends, breakdowns by product/category/priority/rep.
+        Use for aggregation, filtering, or numerical analysis. NOT for case descriptions or resolutions.
   - tool_spec:
       type: "cortex_search"
       name: "CaseSearch"
       description: >
-        Use this tool to search for specific support case details, issue descriptions, and resolution
-        summaries. Use this when the user asks about specific issues, wants to find cases by topic
-        or keyword, needs resolution steps for a type of problem, or asks about what happened in
-        specific cases. This searches the full text of issue and resolution summaries.
+        Search specific case details, issue descriptions, and resolution summaries by topic or keyword.
+        Returns CASE_ID, CUSTOMER_ID, PRODUCT, ISSUE_CATEGORY, PRIORITY, STATUS, REP_NAME as attributes.
+        Always cite CASE_ID values in responses. NOT for aggregate metrics or trends.
 tool_resources:
   SupportAnalytics:
     semantic_view: "CUST_SUPPORT_DEMO.AGENTS.SUPPORT_ANALYTICS"
@@ -602,7 +609,7 @@ tool_resources:
       warehouse: COMPUTE_WH
   CaseSearch:
     name: "CUST_SUPPORT_DEMO.AGENTS.CASE_SEARCH_SERVICE"
-    max_results: "5"
+    max_results: "10"
     execution_environment:
       query_timeout: 299
       type: warehouse
