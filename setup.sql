@@ -4,6 +4,7 @@
 
 -- 1. Database, Schema and grants
 
+USE ROLE ACCOUNTADMIN;
 CREATE OR REPLACE DATABASE CUST_SUPPORT_DEMO;
 CREATE SCHEMA CUST_SUPPORT_DEMO.AGENTS;
 USE DATABASE CUST_SUPPORT_DEMO;
@@ -555,10 +556,10 @@ CREATE OR REPLACE AGENT SUPPORT_AGENT
     COMMENT = 'Customer Support AI Agent - answers questions about support metrics, case details, and support rep performance'
     FROM SPECIFICATION $$
 models:
-  orchestration: claude-4-sonnet
+  orchestration: claude-sonnet-4-6
 orchestration:
   budget:
-    seconds: 30
+    seconds: 60
     tokens: 16000
 instructions:
   response: >
@@ -655,22 +656,20 @@ FILES = ('support_agent_eval_config.yaml');
 LS @CUST_SUPPORT_DEMO.AGENTS.EVAL_CONFIG_STAGE;
 
 -- Optionally look at contents of yaml
--- SELECT $1 FROM @CUST_SUPPORT_DEMO.AGENTS.EVAL_CONFIG_STAGE/support_agent_eval_config.yaml (FILE_FORMAT => 'SUPPORT_AGENT_CSV_FORMAT');
+SELECT $1 FROM @CUST_SUPPORT_DEMO.AGENTS.EVAL_CONFIG_STAGE/support_agent_eval_config.yaml (FILE_FORMAT => 'SUPPORT_AGENT_CSV_FORMAT');
 
 USE SCHEMA CUST_SUPPORT_DEMO.AGENTS;
 
 -- Kickoff evaluation run using yaml config
 CALL EXECUTE_AI_EVALUATION(
   'START',
-  OBJECT_CONSTRUCT('run_name', 'SUPPORT_AGENT_CORTEX_EVAL_RUN_V1'),
+  OBJECT_CONSTRUCT('run_name', 'CORTEX_SUPPORT_AGENT_EVAL_RUN'),
   '@CUST_SUPPORT_DEMO.AGENTS.EVAL_CONFIG_STAGE/support_agent_eval_config.yaml'
 );
 
 -- Check run status
 CALL EXECUTE_AI_EVALUATION(
   'STATUS',
-  OBJECT_CONSTRUCT('run_name', 'SUPPORT_AGENT_CORTEX_EVAL_RUN_V1'),
+  OBJECT_CONSTRUCT('run_name', 'CORTEX_SUPPORT_AGENT_EVAL_RUN'),
   '@CUST_SUPPORT_DEMO.AGENTS.EVAL_CONFIG_STAGE/support_agent_eval_config.yaml'
 );
-
-SHOW GRANTS TO ROLE EVAL_ROLE;
