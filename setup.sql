@@ -553,7 +553,7 @@ CREATE OR REPLACE CORTEX SEARCH SERVICE CASE_SEARCH_SERVICE
     );
 
 -- 7. Cortex Agent (ties Analyst + Search together)
-CREATE OR REPLACE AGENT SUPPORT_AGENT
+CREATE OR REPLACE AGENT CORTEX_CUST_SUPPORT_AGENT
     COMMENT = 'Customer Support AI Agent - answers questions about support metrics, case details, and support rep performance'
     FROM SPECIFICATION $$
 models:
@@ -659,12 +659,12 @@ LS @CUST_SUPPORT_DEMO.AGENTS.EVAL_CONFIG_STAGE;
 -- Optionally look at contents of yaml
 SELECT $1 FROM @CUST_SUPPORT_DEMO.AGENTS.EVAL_CONFIG_STAGE/support_agent_eval_config.yaml (FILE_FORMAT => 'SUPPORT_AGENT_CSV_FORMAT');
 
-USE SCHEMA CUST_SUPPORT_DEMO.AGENTS;
+SHOW AGENTS IN SCHEMA CUST_SUPPORT_DEMO.AGENTS;
 
 -- Kickoff evaluation run using yaml config
 CALL EXECUTE_AI_EVALUATION(
   'START',
-  OBJECT_CONSTRUCT('run_name', 'CORTEX_SUPPORT_AGENT_EVAL_RUN'),
+  OBJECT_CONSTRUCT('run_name', 'CORTEX_SUPPORT_AGENT_EVAL_RUN_V2'),
   '@CUST_SUPPORT_DEMO.AGENTS.EVAL_CONFIG_STAGE/support_agent_eval_config.yaml'
 );
 

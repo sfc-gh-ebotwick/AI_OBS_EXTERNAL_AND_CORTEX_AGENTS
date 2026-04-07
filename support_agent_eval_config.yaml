@@ -5,7 +5,7 @@
 # Evaluation task configuration
 evaluation:
   agent_params:
-    agent_name: CUST_SUPPORT_DEMO.AGENTS.SUPPORT_AGENT
+    agent_name: CUST_SUPPORT_DEMO.AGENTS.CORTEX_CUST_SUPPORT_AGENT
     agent_type: CORTEX AGENT
   run_params:
     label: Customer Support Agent Evaluation
