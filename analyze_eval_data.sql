@@ -174,6 +174,7 @@ ORDER BY AVG_DURATION_MS DESC;
 
 -- 6) LANGGRAPH AGENT SPAN BREAKDOWN
 --    Shows retrieval, MCP, generation span durations for the external agent
+
 SELECT
     'CUSTOMER_SUPPORT_AGENT_LANGGRAPH' AS AGENT_NAME,
     RECORD_ATTRIBUTES:"ai.observability.span_type"::STRING AS SPAN_TYPE,
@@ -188,34 +189,121 @@ WHERE RECORD_ATTRIBUTES:"snow.ai.observability.object.name"::STRING = 'CUSTOMER_
 GROUP BY SPAN_TYPE
 ORDER BY AVG_DURATION_MS DESC;
 
+SELECT SNOWFLAKE.CORTEX.COUNT_TOKENS('e5-large-v2', 'RECORD_ATTRIBUTES:"ai.observability.graph_node.output_state"::STRING') AS COMPLETION_TOKENS;,
+        * FROM TABLE(
+    SNOWFLAKE.LOCAL.GET_AI_OBSERVABILITY_EVENTS(
+    'CUST_SUPPORT_DEMO',
+    'AGENTS',
+    'LANGGRAPH_CUSTOMER_SUPPORT_AGENT',
+    'EXTERNAL AGENT'
+    ))
+    where COMPLETION_TOKENS is not null;
+
+SELECT         
+-- SNOWFLAKE.CORTEX.COUNT_TOKENS('llama4-maverick', RECORD_ATTRIBUTES:"ai.observability.graph_node.input_state"::STRING) AS PROMPT_TOKENS,
+-- SNOWFLAKE.CORTEX.COUNT_TOKENS('llama4-maverick', RECORD_ATTRIBUTES:"ai.observability.graph_node.output_state"::STRING) AS COMPLETION_TOKENS,
+-- PROMPT_TOKENS + COMPLETION_TOKENS AS TOTAL_TOKENS,
+REGEXP_SUBSTR(
+    RECORD_ATTRIBUTES:"ai.observability.call.return"::STRING,
+    'input_tokens.: (\\d+)', 1, 1, 'e'
+)::NUMBER AS INPUT_TOKENS,
+*     FROM TABLE(
+    SNOWFLAKE.LOCAL.GET_AI_OBSERVABILITY_EVENTS(
+    'CUST_SUPPORT_DEMO',
+    'AGENTS',
+    'LANGGRAPH_CUSTOMER_SUPPORT_AGENT',
+    'EXTERNAL AGENT'
+    ))
+        WHERE RECORD_ATTRIBUTES:"ai.observability.span_type"::STRING = 'record_root';
+
+    -- where total_tokens is not null;
+
 
 -- 7) SIDE-BY-SIDE RESPONSE COMPARISON ON MATCHING INPUTS
 --    Joins both agents' responses to the same user queries for qualitative review
-WITH cortex_responses AS (
+WITH cortex_token_totals AS (
     SELECT
-        RECORD_ATTRIBUTES:"ai.observability.record_root.input"::STRING AS USER_INPUT,
-        RECORD_ATTRIBUTES:"ai.observability.record_root.output"::STRING AS AGENT_RESPONSE,
-        TIMESTAMPDIFF('millisecond', START_TIMESTAMP, TIMESTAMP) AS LATENCY_MS,
-        RECORD_ATTRIBUTES:"ai.observability.cost.num_prompt_tokens"::NUMBER AS PROMPT_TOKENS,
-        RECORD_ATTRIBUTES:"ai.observability.cost.num_completion_tokens"::NUMBER AS COMPLETION_TOKENS,
-        RECORD_ATTRIBUTES:"ai.observability.cost.num_tokens"::NUMBER AS TOTAL_TOKENS
-    FROM SNOWFLAKE.LOCAL.AI_OBSERVABILITY_EVENTS
-    WHERE RECORD_ATTRIBUTES:"snow.ai.observability.object.name"::STRING = 'CORTEX_CUST_SUPPORT_AGENT'
-      AND RECORD_ATTRIBUTES:"ai.observability.span_type"::STRING = 'record_root'
-      -- AND TIMESTAMP ilike '%2026-04%'
+        RECORD_ATTRIBUTES:"ai.observability.record_id"::STRING AS RECORD_ID,
+        SUM(RECORD_ATTRIBUTES:"snow.ai.observability.agent.planning.token_count.input"::NUMBER) AS PROMPT_TOKENS,
+        SUM(RECORD_ATTRIBUTES:"snow.ai.observability.agent.planning.token_count.output"::NUMBER) AS COMPLETION_TOKENS,
+        SUM(RECORD_ATTRIBUTES:"snow.ai.observability.agent.planning.token_count.total"::NUMBER) AS TOTAL_TOKENS
+    FROM TABLE(
+    SNOWFLAKE.LOCAL.GET_AI_OBSERVABILITY_EVENTS(
+    'CUST_SUPPORT_DEMO',
+    'AGENTS',
+    'CORTEX_CUST_SUPPORT_AGENT',
+    'CORTEX AGENT'
+    ))
+    WHERE RECORD_ATTRIBUTES:"snow.ai.observability.agent.planning.token_count.total" IS NOT NULL
+    GROUP BY RECORD_ID
+),
+cortex_responses AS (
+    SELECT
+        r.RECORD_ATTRIBUTES:"ai.observability.record_root.input"::STRING AS USER_INPUT,
+        r.RECORD_ATTRIBUTES:"ai.observability.record_root.output"::STRING AS AGENT_RESPONSE,
+        TIMESTAMPDIFF('millisecond', r.START_TIMESTAMP, r.TIMESTAMP) AS LATENCY_MS,
+        -- r.RECORD_ATTRIBUTES:"ai.observability.cost.num_prompt_tokens"::NUMBER AS PROMPT_TOKENS,
+        -- r.RECORD_ATTRIBUTES:"ai.observability.cost.num_completion_tokens"::NUMBER AS COMPLETION_TOKENS,
+        t.PROMPT_TOKENS,
+        t.COMPLETION_TOKENS,
+        t.TOTAL_TOKENS
+    FROM TABLE(
+    SNOWFLAKE.LOCAL.GET_AI_OBSERVABILITY_EVENTS(
+    'CUST_SUPPORT_DEMO',
+    'AGENTS',
+    'CORTEX_CUST_SUPPORT_AGENT',
+    'CORTEX AGENT'
+    )) r
+    LEFT JOIN cortex_token_totals t
+        ON r.RECORD_ATTRIBUTES:"ai.observability.record_id"::STRING = t.RECORD_ID
+    WHERE r.RECORD_ATTRIBUTES:"ai.observability.span_type"::STRING = 'record_root'
+),
+langgraph_token_raw AS (
+    SELECT
+        RECORD_ATTRIBUTES:"ai.observability.record_id"::STRING AS RECORD_ID,
+        RECORD_ATTRIBUTES:"ai.observability.call.return"::STRING AS CALL_RETURN,
+        REGEXP_COUNT(CALL_RETURN, 'usage_metadata=\\{''input_tokens'': \\d+') AS USAGE_COUNT
+    FROM TABLE(
+    SNOWFLAKE.LOCAL.GET_AI_OBSERVABILITY_EVENTS(
+    'CUST_SUPPORT_DEMO',
+    'AGENTS',
+    'LANGGRAPH_CUSTOMER_SUPPORT_AGENT',
+    'EXTERNAL AGENT'
+    ))
+    WHERE CALL_RETURN LIKE '%usage_metadata%'
+        AND RECORD_ATTRIBUTES:"ai.observability.span_type"::STRING = 'graph_node'
+),
+langgraph_idx AS (
+    SELECT SEQ4() + 1 AS N FROM TABLE(GENERATOR(ROWCOUNT => 20))
+),
+langgraph_token_totals AS (
+    SELECT
+        r.RECORD_ID,
+        SUM(REGEXP_SUBSTR(r.CALL_RETURN, '''input_tokens'': (\\d+)', 1, i.N, 'e')::NUMBER) AS PROMPT_TOKENS,
+        SUM(REGEXP_SUBSTR(r.CALL_RETURN, '''output_tokens'': (\\d+)', 1, i.N, 'e')::NUMBER) AS COMPLETION_TOKENS,
+        SUM(REGEXP_SUBSTR(r.CALL_RETURN, '''total_tokens'': (\\d+)', 1, i.N, 'e')::NUMBER) AS TOTAL_TOKENS
+    FROM langgraph_token_raw r
+    JOIN langgraph_idx i ON i.N <= r.USAGE_COUNT
+    GROUP BY r.RECORD_ID
 ),
 langgraph_responses AS (
     SELECT
-        RECORD_ATTRIBUTES:"ai.observability.record_root.input"::STRING AS USER_INPUT,
-        RECORD_ATTRIBUTES:"ai.observability.record_root.output"::STRING AS AGENT_RESPONSE,
-        TIMESTAMPDIFF('millisecond', START_TIMESTAMP, TIMESTAMP) AS LATENCY_MS,
-        RECORD_ATTRIBUTES:"ai.observability.cost.num_prompt_tokens"::NUMBER AS PROMPT_TOKENS,
-        RECORD_ATTRIBUTES:"ai.observability.cost.num_completion_tokens"::NUMBER AS COMPLETION_TOKENS,
-        RECORD_ATTRIBUTES:"ai.observability.cost.num_tokens"::NUMBER AS TOTAL_TOKENS
-    FROM SNOWFLAKE.LOCAL.AI_OBSERVABILITY_EVENTS
-    WHERE RECORD_ATTRIBUTES:"snow.ai.observability.object.name"::STRING = 'CUSTOMER_SUPPORT_AGENT_LANGGRAPH'
-      AND RECORD_ATTRIBUTES:"ai.observability.span_type"::STRING = 'record_root'
-      AND TIMESTAMP ilike '%2026-04-07%'
+        r.RECORD_ATTRIBUTES:"ai.observability.record_root.input"::STRING AS USER_INPUT,
+        r.RECORD_ATTRIBUTES:"ai.observability.record_root.output"::STRING AS AGENT_RESPONSE,
+        TIMESTAMPDIFF('millisecond', r.START_TIMESTAMP, r.TIMESTAMP) AS LATENCY_MS,
+        t.PROMPT_TOKENS,
+        t.COMPLETION_TOKENS,
+        t.TOTAL_TOKENS
+    FROM TABLE(
+    SNOWFLAKE.LOCAL.GET_AI_OBSERVABILITY_EVENTS(
+    'CUST_SUPPORT_DEMO',
+    'AGENTS',
+    'LANGGRAPH_CUSTOMER_SUPPORT_AGENT',
+    'EXTERNAL AGENT'
+    )) r
+    LEFT JOIN langgraph_token_totals t
+        ON r.RECORD_ATTRIBUTES:"ai.observability.record_id"::STRING = t.RECORD_ID
+    WHERE r.RECORD_ATTRIBUTES:"ai.observability.span_type"::STRING = 'record_root'
 )
 SELECT
     c.USER_INPUT,
@@ -231,42 +319,111 @@ SELECT
     l.PROMPT_TOKENS AS LANGGRAPH_PROMPT_TOKENS,
     l.COMPLETION_TOKENS AS LANGGRAPH_COMPLETION_TOKENS,
     l.TOTAL_TOKENS AS LANGGRAPH_TOTAL_TOKENS,
-    c.TOTAL_TOKENS - l.TOTAL_TOKENS AS TOKEN_DIFF
+    c.TOTAL_TOKENS - l.TOTAL_TOKENS AS TOKEN_DIFF,
+    ROUND(( c.TOTAL_TOKENS - l.TOTAL_TOKENS) / NULLIF(l.TOTAL_TOKENS, 0) * 100, 1) AS TOKEN_DIFF_PCT,
+
 FROM cortex_responses c
 INNER JOIN langgraph_responses l
     ON c.USER_INPUT = l.USER_INPUT
 ORDER BY ABS(LATENCY_DIFF_MS) DESC;
 
--- 7b)aggregate latency comparison
+-- 7b)aggregate latency and token comparison
 --    Joins both agents' responses to the same user queries for qualitative review
-WITH cortex_responses AS (
+WITH cortex_token_totals AS (
     SELECT
-        RECORD_ATTRIBUTES:"ai.observability.record_root.input"::STRING AS USER_INPUT,
-        TIMESTAMPDIFF('millisecond', START_TIMESTAMP, TIMESTAMP) AS LATENCY_MS
-    FROM SNOWFLAKE.LOCAL.AI_OBSERVABILITY_EVENTS
-    WHERE RECORD_ATTRIBUTES:"snow.ai.observability.object.name"::STRING = 'CORTEX_CUST_SUPPORT_AGENT'
-      AND RECORD_ATTRIBUTES:"ai.observability.span_type"::STRING = 'record_root'
-      -- AND TIMESTAMP ilike '%2026-04%'
+        RECORD_ATTRIBUTES:"ai.observability.record_id"::STRING AS RECORD_ID,
+        SUM(RECORD_ATTRIBUTES:"snow.ai.observability.agent.planning.token_count.input"::NUMBER) AS PROMPT_TOKENS,
+        SUM(RECORD_ATTRIBUTES:"snow.ai.observability.agent.planning.token_count.output"::NUMBER) AS COMPLETION_TOKENS,
+        SUM(RECORD_ATTRIBUTES:"snow.ai.observability.agent.planning.token_count.total"::NUMBER) AS TOTAL_TOKENS
+    FROM TABLE(
+    SNOWFLAKE.LOCAL.GET_AI_OBSERVABILITY_EVENTS(
+    'CUST_SUPPORT_DEMO',
+    'AGENTS',
+    'CORTEX_CUST_SUPPORT_AGENT',
+    'CORTEX AGENT'
+    ))
+    WHERE RECORD_ATTRIBUTES:"snow.ai.observability.agent.planning.token_count.total" IS NOT NULL
+    GROUP BY RECORD_ID
+),
+cortex_responses AS (
+    SELECT
+        r.RECORD_ATTRIBUTES:"ai.observability.record_root.input"::STRING AS USER_INPUT,
+        TIMESTAMPDIFF('millisecond', r.START_TIMESTAMP, r.TIMESTAMP) AS LATENCY_MS,
+        t.PROMPT_TOKENS,
+        t.COMPLETION_TOKENS,
+        t.TOTAL_TOKENS
+    FROM TABLE(
+    SNOWFLAKE.LOCAL.GET_AI_OBSERVABILITY_EVENTS(
+    'CUST_SUPPORT_DEMO',
+    'AGENTS',
+    'CORTEX_CUST_SUPPORT_AGENT',
+    'CORTEX AGENT'
+    )) r
+    LEFT JOIN cortex_token_totals t
+        ON r.RECORD_ATTRIBUTES:"ai.observability.record_id"::STRING = t.RECORD_ID
+    WHERE r.RECORD_ATTRIBUTES:"ai.observability.span_type"::STRING = 'record_root'
+),
+langgraph_token_raw AS (
+    SELECT
+        RECORD_ATTRIBUTES:"ai.observability.record_id"::STRING AS RECORD_ID,
+        RECORD_ATTRIBUTES:"ai.observability.call.return"::STRING AS CALL_RETURN,
+        REGEXP_COUNT(CALL_RETURN, 'usage_metadata=\\{''input_tokens'': \\d+') AS USAGE_COUNT
+    FROM TABLE(
+    SNOWFLAKE.LOCAL.GET_AI_OBSERVABILITY_EVENTS(
+    'CUST_SUPPORT_DEMO',
+    'AGENTS',
+    'LANGGRAPH_CUSTOMER_SUPPORT_AGENT',
+    'EXTERNAL AGENT'
+    ))
+    WHERE CALL_RETURN LIKE '%usage_metadata%'
+        AND RECORD_ATTRIBUTES:"ai.observability.span_type"::STRING = 'graph_node'
+),
+langgraph_idx AS (
+    SELECT SEQ4() + 1 AS N FROM TABLE(GENERATOR(ROWCOUNT => 20))
+),
+langgraph_token_totals AS (
+    SELECT
+        r.RECORD_ID,
+        SUM(REGEXP_SUBSTR(r.CALL_RETURN, '''input_tokens'': (\\d+)', 1, i.N, 'e')::NUMBER) AS PROMPT_TOKENS,
+        SUM(REGEXP_SUBSTR(r.CALL_RETURN, '''output_tokens'': (\\d+)', 1, i.N, 'e')::NUMBER) AS COMPLETION_TOKENS,
+        SUM(REGEXP_SUBSTR(r.CALL_RETURN, '''total_tokens'': (\\d+)', 1, i.N, 'e')::NUMBER) AS TOTAL_TOKENS
+    FROM langgraph_token_raw r
+    JOIN langgraph_idx i ON i.N <= r.USAGE_COUNT
+    GROUP BY r.RECORD_ID
 ),
 langgraph_responses AS (
     SELECT
-        RECORD_ATTRIBUTES:"ai.observability.record_root.input"::STRING AS USER_INPUT,
-
-        TIMESTAMPDIFF('millisecond', START_TIMESTAMP, TIMESTAMP) AS LATENCY_MS
-    FROM SNOWFLAKE.LOCAL.AI_OBSERVABILITY_EVENTS
-    WHERE RECORD_ATTRIBUTES:"snow.ai.observability.object.name"::STRING = 'CUSTOMER_SUPPORT_AGENT_LANGGRAPH'
-      AND RECORD_ATTRIBUTES:"ai.observability.span_type"::STRING = 'record_root'
-      AND TIMESTAMP ilike '%2026-04-07%'
+        r.RECORD_ATTRIBUTES:"ai.observability.record_root.input"::STRING AS USER_INPUT,
+        TIMESTAMPDIFF('millisecond', r.START_TIMESTAMP, r.TIMESTAMP) AS LATENCY_MS,
+        t.PROMPT_TOKENS,
+        t.COMPLETION_TOKENS,
+        t.TOTAL_TOKENS
+    FROM TABLE(
+    SNOWFLAKE.LOCAL.GET_AI_OBSERVABILITY_EVENTS(
+    'CUST_SUPPORT_DEMO',
+    'AGENTS',
+    'LANGGRAPH_CUSTOMER_SUPPORT_AGENT',
+    'EXTERNAL AGENT'
+    )) r
+    LEFT JOIN langgraph_token_totals t
+        ON r.RECORD_ATTRIBUTES:"ai.observability.record_id"::STRING = t.RECORD_ID
+    WHERE r.RECORD_ATTRIBUTES:"ai.observability.span_type"::STRING = 'record_root'
 )
 SELECT
     AVG(c.LATENCY_MS) AS CORTEX_LATENCY_MS,
     AVG(l.LATENCY_MS) AS LANGGRAPH_LATENCY_MS,
     AVG(ROUND(c.LATENCY_MS - l.LATENCY_MS, 0)) AS LATENCY_DIFF_MS,
-    ROUND((AVG(c.LATENCY_MS) - AVG(l.LATENCY_MS)) / NULLIF(AVG(l.LATENCY_MS), 0) * 100, 1) AS LATENCY_DIFF_PCT
+    ROUND((AVG(c.LATENCY_MS) - AVG(l.LATENCY_MS)) / NULLIF(AVG(l.LATENCY_MS), 0) * 100, 1) AS LATENCY_DIFF_PCT,
+    AVG(c.TOTAL_TOKENS) AS AVG_CORTEX_TOTAL_TOKENS,
+    AVG(l.TOTAL_TOKENS) AS AVG_LANGGRAPH_TOTAL_TOKENS,
+    AVG(c.PROMPT_TOKENS) AS AVG_CORTEX_PROMPT_TOKENS,
+    AVG(l.PROMPT_TOKENS) AS AVG_LANGGRAPH_PROMPT_TOKENS,
+    AVG(c.COMPLETION_TOKENS) AS AVG_CORTEX_COMPLETION_TOKENS,
+    AVG(l.COMPLETION_TOKENS) AS AVG_LANGGRAPH_COMPLETION_TOKENS,
+    ROUND((AVG(c.TOTAL_TOKENS) - AVG(l.TOTAL_TOKENS)) / NULLIF(AVG(l.TOTAL_TOKENS), 0) * 100, 1) AS TOKEN_DIFF_PCT
 FROM cortex_responses c
 INNER JOIN langgraph_responses l
-    ON c.USER_INPUT = l.USER_INPUT
-ORDER BY ABS(LATENCY_DIFF_MS) DESC;
+    ON c.USER_INPUT = l.USER_INPUT;
 
 
 
