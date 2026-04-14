@@ -1,0 +1,76 @@
+INPUT_QUERY,GROUND_TRUTH_DATA
+What is the average CSAT score by product?,"{
+  ""ground_truth_output"": ""The average CSAT scores by product are: AnalyticsHub: 3.89, SecureVault: 3.84, API Gateway: 3.82, DataSync Pro: 3.79, CloudStore Platform: 3.77.""
+}"
+Which rep has the fastest average resolution time?,"{
+  ""ground_truth_output"": ""Rachel Foster has the fastest average resolution time at 8.38 hours, followed by Carlos Garcia at 8.41 hours, Sarah Chen at 8.65 hours, and Tom Martinez at 8.73 hours.""
+}"
+What is the escalation rate for Critical priority cases?,"{
+  ""ground_truth_output"": ""The escalation rate for Critical priority cases is 20%. Out of 25 Critical cases, 5 were escalated.""
+}"
+How many cases were there for each issue category?,"{
+  ""ground_truth_output"": ""Case counts by issue category: Login/Authentication: 32, Security: 27, Configuration: 26, Integration: 25, Data Loss: 25, Performance: 23, Feature Request: 23, Billing: 19.""
+}"
+How many support cases were there for each product?,"{
+  ""ground_truth_output"": ""Cases by product: SecureVault: 47, CloudStore Platform: 42, DataSync Pro: 41, API Gateway: 36, AnalyticsHub: 34. Total: 200 cases.""
+}"
+What is the average CSAT score by issue category?,"{
+  ""ground_truth_output"": ""Average CSAT by issue category: Data Loss: 3.97, Security: 3.92, Login/Authentication: 3.87, Performance: 3.84, Feature Request: 3.79, Billing: 3.78, Configuration: 3.72, Integration: 3.66.""
+}"
+Which reps handled the most cases overall?,"{
+  ""ground_truth_output"": ""Reps by total cases handled: David Kim: 216, Carlos Garcia: 209, Tom Martinez: 206, Priya Patel: 205, James Wilson: 205, Rachel Foster: 205, Emma Thompson: 197, Aisha Johnson: 191, Mike Rodriguez: 180, Sarah Chen: 178.""
+}"
+What is the escalation rate for each priority level?,"{
+  ""ground_truth_output"": ""Escalation rates by priority: Critical: 20%, High: 18.75%, Medium: 0%, Low: 0%. Only Critical and High priority cases had escalations.""
+}"
+What is the overall average CSAT score across all cases?,"{
+  ""ground_truth_output"": ""The overall average CSAT score across all 200 cases is 3.82 on a 1-5 scale.""
+}"
+What is the average first response time by priority level?,"{
+  ""ground_truth_output"": ""Average first response time by priority: Low: 14.43 minutes, Medium: 17.42 minutes, High: 22.53 minutes, Critical: 29.56 minutes. Higher priority cases have longer first response times.""
+}"
+Which rep has the highest average CSAT score?,"{
+  ""ground_truth_output"": ""Carlos Garcia has the highest average CSAT score at 4.07, followed by Mike Rodriguez at 3.98 and Emma Thompson at 3.90.""
+}"
+How many cases were there by priority level?,"{
+  ""ground_truth_output"": ""Cases by priority: Medium: 74, High: 64, Low: 37, Critical: 25. Total: 200 cases.""
+}"
+What is the average resolution time by product?,"{
+  ""ground_truth_output"": ""Average resolution time by product: SecureVault: 10.60 hours, DataSync Pro: 10.68 hours, API Gateway: 10.77 hours, CloudStore Platform: 11.18 hours, AnalyticsHub: 12.01 hours.""
+}"
+What is the overall escalation rate across all cases?,"{
+  ""ground_truth_output"": ""The overall escalation rate is 8.50%. Out of 200 total cases, 17 were escalated.""
+}"
+Which rep has the highest escalation rate?,"{
+  ""ground_truth_output"": ""David Kim has the highest average escalation rate at 17.75%, followed by Aisha Johnson at 17.08% and Mike Rodriguez at 14.92%.""
+}"
+What is the average number of interactions per case by priority?,"{
+  ""ground_truth_output"": ""Average interactions by priority: Low: 2.54, Medium: 3.20, High: 4.16, Critical: 5.56. Higher priority cases require more interactions.""
+}"
+How many total cases were received in January 2026?,"{
+  ""ground_truth_output"": ""There were 381 total cases received in January 2026 according to daily support metrics.""
+}"
+What was the busiest day for support cases?,"{
+  ""ground_truth_output"": ""The busiest day was December 17, 2025 with 20 cases received.""
+}"
+Search for cases involving dashboard loading or performance problems,"{
+  ""ground_truth_output"": ""There are several cases about dashboard loading times exceeding 30 seconds for reports with large datasets, including CASE-00042 (SecureVault), CASE-00079 (SecureVault), CASE-00100 (CloudStore Platform), and CASE-00167 (CloudStore Platform). Resolutions involved optimizing queries and implementing result caching.""
+}"
+Find cases related to SSO or SAML integration failures,"{
+  ""ground_truth_output"": ""SSO/SAML cases include CASE-00024 and CASE-00057 (SecureVault), CASE-00035 (CloudStore Platform), and CASE-00031 (API Gateway). These involved SAML assertion errors for enterprise accounts, resolved by updating expired SAML certificates and reconfiguring IdP metadata URLs.""
+}"
+What billing issues have customers reported?,"{
+  ""ground_truth_output"": ""Billing issues include duplicate subscription charges (e.g. CASE-00015, CASE-00055), usage-based charges not matching customer tracking (e.g. CASE-00018, CASE-00021), auto-renewals processed despite cancellation requests (e.g. CASE-00036, CASE-00049), and incorrect plan tier charges on invoices (e.g. CASE-00047).""
+}"
+Search for cases involving data synchronization or export failures,"{
+  ""ground_truth_output"": ""Cases include data synchronization failures resulting in partial data in staging environments (e.g. CASE-00007), and export jobs producing incomplete CSV files missing thousands of rows (e.g. CASE-00011, CASE-00013, CASE-00048). Resolutions involved running full resynchronizations and increasing export buffer sizes.""
+}"
+Find cases about API response time or timeout issues,"{
+  ""ground_truth_output"": ""Cases include API response times spiking during peak hours causing downstream timeouts (e.g. CASE-00071, CASE-00077, CASE-00086), and batch data import jobs timing out when processing files over 500MB (e.g. CASE-00006, CASE-00067). Resolutions involved adjusting rate limiters, connection pooling, and enabling chunked upload mode.""
+}"
+Search for cases related to TLS or security vulnerabilities,"{
+  ""ground_truth_output"": ""Cases include vulnerability scans showing outdated TLS versions on customer endpoints (e.g. CASE-00010, CASE-00023), API keys exposed in public repositories (e.g. CASE-00070, CASE-00120), and SOC 2 compliance documentation requests (e.g. CASE-00026, CASE-00033). TLS issues were resolved by upgrading from TLS 1.1 to 1.3.""
+}"
+What is the resolution rate for each rep?,"{
+  ""ground_truth_output"": ""Resolution rates by rep: James Wilson: 83.9%, Aisha Johnson: 82.7%, David Kim: 81.9%, Rachel Foster: 81.5%, Emma Thompson: 81.2%, Tom Martinez: 80.6%, Sarah Chen: 80.3%, Carlos Garcia: 78.9%, Mike Rodriguez: 77.8%, Priya Patel: 76.1%.""
+}"
