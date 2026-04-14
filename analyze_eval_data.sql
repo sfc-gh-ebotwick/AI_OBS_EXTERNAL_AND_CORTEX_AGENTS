@@ -195,31 +195,81 @@ WITH cortex_responses AS (
     SELECT
         RECORD_ATTRIBUTES:"ai.observability.record_root.input"::STRING AS USER_INPUT,
         RECORD_ATTRIBUTES:"ai.observability.record_root.output"::STRING AS AGENT_RESPONSE,
-        TIMESTAMPDIFF('millisecond', START_TIMESTAMP, TIMESTAMP) AS LATENCY_MS
+        TIMESTAMPDIFF('millisecond', START_TIMESTAMP, TIMESTAMP) AS LATENCY_MS,
+        RECORD_ATTRIBUTES:"ai.observability.cost.num_prompt_tokens"::NUMBER AS PROMPT_TOKENS,
+        RECORD_ATTRIBUTES:"ai.observability.cost.num_completion_tokens"::NUMBER AS COMPLETION_TOKENS,
+        RECORD_ATTRIBUTES:"ai.observability.cost.num_tokens"::NUMBER AS TOTAL_TOKENS
     FROM SNOWFLAKE.LOCAL.AI_OBSERVABILITY_EVENTS
-    WHERE RECORD_ATTRIBUTES:"snow.ai.observability.object.name"::STRING = 'SUPPORT_AGENT'
+    WHERE RECORD_ATTRIBUTES:"snow.ai.observability.object.name"::STRING = 'CORTEX_CUST_SUPPORT_AGENT'
       AND RECORD_ATTRIBUTES:"ai.observability.span_type"::STRING = 'record_root'
+      -- AND TIMESTAMP ilike '%2026-04%'
 ),
 langgraph_responses AS (
     SELECT
         RECORD_ATTRIBUTES:"ai.observability.record_root.input"::STRING AS USER_INPUT,
         RECORD_ATTRIBUTES:"ai.observability.record_root.output"::STRING AS AGENT_RESPONSE,
-        TIMESTAMPDIFF('millisecond', START_TIMESTAMP, TIMESTAMP) AS LATENCY_MS
+        TIMESTAMPDIFF('millisecond', START_TIMESTAMP, TIMESTAMP) AS LATENCY_MS,
+        RECORD_ATTRIBUTES:"ai.observability.cost.num_prompt_tokens"::NUMBER AS PROMPT_TOKENS,
+        RECORD_ATTRIBUTES:"ai.observability.cost.num_completion_tokens"::NUMBER AS COMPLETION_TOKENS,
+        RECORD_ATTRIBUTES:"ai.observability.cost.num_tokens"::NUMBER AS TOTAL_TOKENS
     FROM SNOWFLAKE.LOCAL.AI_OBSERVABILITY_EVENTS
     WHERE RECORD_ATTRIBUTES:"snow.ai.observability.object.name"::STRING = 'CUSTOMER_SUPPORT_AGENT_LANGGRAPH'
       AND RECORD_ATTRIBUTES:"ai.observability.span_type"::STRING = 'record_root'
+      AND TIMESTAMP ilike '%2026-04-07%'
 )
 SELECT
     c.USER_INPUT,
     LEFT(c.AGENT_RESPONSE, 200) AS CORTEX_RESPONSE_PREVIEW,
-    c.LATENCY_MS AS CORTEX_LATENCY_MS,
     LEFT(l.AGENT_RESPONSE, 200) AS LANGGRAPH_RESPONSE_PREVIEW,
+    c.LATENCY_MS AS CORTEX_LATENCY_MS,
     l.LATENCY_MS AS LANGGRAPH_LATENCY_MS,
-    ROUND(c.LATENCY_MS - l.LATENCY_MS, 0) AS LATENCY_DIFF_MS
+    ROUND(c.LATENCY_MS - l.LATENCY_MS, 0) AS LATENCY_DIFF_MS,
+    ROUND((c.LATENCY_MS - l.LATENCY_MS) / NULLIF(l.LATENCY_MS, 0) * 100, 1) AS LATENCY_DIFF_PCT,
+    c.PROMPT_TOKENS AS CORTEX_PROMPT_TOKENS,
+    c.COMPLETION_TOKENS AS CORTEX_COMPLETION_TOKENS,
+    c.TOTAL_TOKENS AS CORTEX_TOTAL_TOKENS,
+    l.PROMPT_TOKENS AS LANGGRAPH_PROMPT_TOKENS,
+    l.COMPLETION_TOKENS AS LANGGRAPH_COMPLETION_TOKENS,
+    l.TOTAL_TOKENS AS LANGGRAPH_TOTAL_TOKENS,
+    c.TOTAL_TOKENS - l.TOTAL_TOKENS AS TOKEN_DIFF
 FROM cortex_responses c
 INNER JOIN langgraph_responses l
     ON c.USER_INPUT = l.USER_INPUT
 ORDER BY ABS(LATENCY_DIFF_MS) DESC;
+
+-- 7b)aggregate latency comparison
+--    Joins both agents' responses to the same user queries for qualitative review
+WITH cortex_responses AS (
+    SELECT
+        RECORD_ATTRIBUTES:"ai.observability.record_root.input"::STRING AS USER_INPUT,
+        TIMESTAMPDIFF('millisecond', START_TIMESTAMP, TIMESTAMP) AS LATENCY_MS
+    FROM SNOWFLAKE.LOCAL.AI_OBSERVABILITY_EVENTS
+    WHERE RECORD_ATTRIBUTES:"snow.ai.observability.object.name"::STRING = 'CORTEX_CUST_SUPPORT_AGENT'
+      AND RECORD_ATTRIBUTES:"ai.observability.span_type"::STRING = 'record_root'
+      -- AND TIMESTAMP ilike '%2026-04%'
+),
+langgraph_responses AS (
+    SELECT
+        RECORD_ATTRIBUTES:"ai.observability.record_root.input"::STRING AS USER_INPUT,
+
+        TIMESTAMPDIFF('millisecond', START_TIMESTAMP, TIMESTAMP) AS LATENCY_MS
+    FROM SNOWFLAKE.LOCAL.AI_OBSERVABILITY_EVENTS
+    WHERE RECORD_ATTRIBUTES:"snow.ai.observability.object.name"::STRING = 'CUSTOMER_SUPPORT_AGENT_LANGGRAPH'
+      AND RECORD_ATTRIBUTES:"ai.observability.span_type"::STRING = 'record_root'
+      AND TIMESTAMP ilike '%2026-04-07%'
+)
+SELECT
+    AVG(c.LATENCY_MS) AS CORTEX_LATENCY_MS,
+    AVG(l.LATENCY_MS) AS LANGGRAPH_LATENCY_MS,
+    AVG(ROUND(c.LATENCY_MS - l.LATENCY_MS, 0)) AS LATENCY_DIFF_MS,
+    ROUND((AVG(c.LATENCY_MS) - AVG(l.LATENCY_MS)) / NULLIF(AVG(l.LATENCY_MS), 0) * 100, 1) AS LATENCY_DIFF_PCT
+FROM cortex_responses c
+INNER JOIN langgraph_responses l
+    ON c.USER_INPUT = l.USER_INPUT
+ORDER BY ABS(LATENCY_DIFF_MS) DESC;
+
+
+
 
 
 -- 8) EVAL SCORE HEATMAP: SCORE BUCKETS BY AGENT AND METRIC

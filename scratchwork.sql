@@ -71,8 +71,18 @@ WHERE TRUE
   -- AND (record:"severity_text" = 'ERROR' OR record:"severity_text" = 'WARN')
   AND record_attributes:"snow.ai.observability.run.name" = 'batch_run_2026-03-26 10:25:37';
 
+SHOW AGENTS in CUST_SUPPORT_DEMO.AGENTS;
 
-
+SELECT 
+RECORD_ATTRIBUTES:"snow.ai.observability.agent.planning.response" as planning_output,
+* FROM TABLE(SNOWFLAKE.LOCAL.GET_AI_OBSERVABILITY_EVENTS(
+  '<DB_NAME>', -- update this and next two lines
+  '<SCHEMA_NAME>',
+  '<AGENT_NAME>',
+  'CORTEX AGENT'
+))
+WHERE record_attributes:"ai.observability.record_id" = 'a144dc80-b3d9-44c1-bcb7-51aebda09aa7' -- update request_id as needed here
+;
 
 
 DESCRIBE EXTERNAL AGENT CUST_SUPPORT_DEMO.AGENTS.CUSTOMER_SUPPORT_AGENT_LANGGRAPH;
