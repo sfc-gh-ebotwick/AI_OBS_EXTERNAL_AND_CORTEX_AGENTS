@@ -1,71 +1,31 @@
-SELECT *
-FROM TABLE(SNOWFLAKE.LOCAL.GET_AI_EVALUATION_DATA(
-    'CUST_SUPPORT_DEMO',
-    'AGENTS',
-    'SUPPORT_AGENT',
-    'CORTEX AGENT',
-    'CORTEX_SUPPORT_AGENT_EVAL_RUN'
-));
-
--- Debug eval run: Get detailed results
-SELECT * FROM TABLE(SNOWFLAKE.LOCAL.GET_AI_EVALUATION_DATA(
-  'CUST_SUPPORT_DEMO',
-  'AGENTS',
-  'CUSTOMER_SUPPORT_AGENT_LANGGRAPH',
-  'EXTERNAL AGENT',
-  'LANGGRAPH_SUPPORT_AGENT_EVAL_RUN'
-));
-
-
-
-SELECT * FROM TABLE(
-    SNOWFLAKE.LOCAL.GET_AI_OBSERVABILITY_EVENTS(
-    'CUST_SUPPORT_DEMO',
-    'SUPPORT',
-    'SUPPORT_AGENT',
-    'cortex agent'
-    ) );
--- WHERE RECORD_ATTRIBUTES:"snow.ai.observability.run.name" = 'a';
-
-
-SELECT
-RECORD_ATTRIBUTES:"snow.ai.observability.object.type" AS AGENT_TYPE,
-RECORD_ATTRIBUTES:"snow.ai.observability.object.name" AS AGENT_NAME,
-RECORD_ATTRIBUTES:"ai.observability.record_root.input" AS USER_INPUT,
-RECORD_ATTRIBUTES:"ai.observability.record_root.output" AS AGENT_RESPONSE,
-RECORD_ATTRIBUTES:"ai.observability.eval.metric_name" AS EVAL_METRIC,
-RECORD_ATTRIBUTES:"ai.observability.eval.score" AS EVAL_SCORE,
-*
-FROM SNOWFLAKE.LOCAL.AI_OBSERVABILITY_EVENTS
-WHERE RECORD_TYPE = 'SPAN'
-AND AGENT_NAME ilike '%SUPPORT_AGENT%'
-ORDER BY TIMESTAMP DESC;
-
 --------------------------------------------------------------------------------
--- AGENT COMPARISON: CUSTOMER_SUPPORT_AGENT_LANGGRAPH vs SUPPORT_AGENT
+-- AGENT COMPARISON: LANGGRAPH_CUSTOMER_SUPPORT_AGENT vs CORTEX_CUST_SUPPORT_AGENT
 --------------------------------------------------------------------------------
 
 -- 1) HIGH-LEVEL PERFORMANCE SCORECARD
 --    Compares avg eval scores, latency, and volume side-by-side
-WITH eval_scores AS (
+WITH all_events AS (
+    SELECT * FROM TABLE(SNOWFLAKE.LOCAL.GET_AI_OBSERVABILITY_EVENTS(
+        'CUST_SUPPORT_DEMO', 'AGENTS', 'CORTEX_CUST_SUPPORT_AGENT', 'CORTEX AGENT'))
+    UNION ALL
+    SELECT * FROM TABLE(SNOWFLAKE.LOCAL.GET_AI_OBSERVABILITY_EVENTS(
+        'CUST_SUPPORT_DEMO', 'AGENTS', 'LANGGRAPH_CUSTOMER_SUPPORT_AGENT', 'EXTERNAL AGENT'))
+),
+eval_scores AS (
     SELECT
         RECORD_ATTRIBUTES:"snow.ai.observability.object.name"::STRING AS AGENT_NAME,
         RECORD_ATTRIBUTES:"ai.observability.eval.metric_name"::STRING AS METRIC,
         RECORD_ATTRIBUTES:"ai.observability.eval_root.score"::FLOAT AS SCORE
-    FROM SNOWFLAKE.LOCAL.AI_OBSERVABILITY_EVENTS
-    WHERE RECORD_ATTRIBUTES:"snow.ai.observability.object.name"::STRING
-          IN ('SUPPORT_AGENT', 'CUSTOMER_SUPPORT_AGENT_LANGGRAPH')
-      AND RECORD_ATTRIBUTES:"ai.observability.span_type"::STRING = 'eval_root'
+    FROM all_events
+    WHERE RECORD_ATTRIBUTES:"ai.observability.span_type"::STRING = 'eval_root'
       AND RECORD_ATTRIBUTES:"ai.observability.eval_root.score" IS NOT NULL
 ),
 latencies AS (
     SELECT
         RECORD_ATTRIBUTES:"snow.ai.observability.object.name"::STRING AS AGENT_NAME,
         TIMESTAMPDIFF('millisecond', START_TIMESTAMP, TIMESTAMP) AS DURATION_MS
-    FROM SNOWFLAKE.LOCAL.AI_OBSERVABILITY_EVENTS
-    WHERE RECORD_ATTRIBUTES:"snow.ai.observability.object.name"::STRING
-          IN ('SUPPORT_AGENT', 'CUSTOMER_SUPPORT_AGENT_LANGGRAPH')
-      AND RECORD_ATTRIBUTES:"ai.observability.span_type"::STRING = 'record_root'
+    FROM all_events
+    WHERE RECORD_ATTRIBUTES:"ai.observability.span_type"::STRING = 'record_root'
 )
 SELECT
     COALESCE(e.AGENT_NAME, l.AGENT_NAME) AS AGENT_NAME,
@@ -96,10 +56,14 @@ SELECT
     SUM(CASE WHEN RECORD_ATTRIBUTES:"ai.observability.eval_root.score"::FLOAT = 1 THEN 1 ELSE 0 END) AS PERFECT_SCORE_COUNT,
     ROUND(SUM(CASE WHEN RECORD_ATTRIBUTES:"ai.observability.eval_root.score"::FLOAT = 1 THEN 1 ELSE 0 END)
           / COUNT(*)::FLOAT * 100, 1) AS PERFECT_SCORE_PCT
-FROM SNOWFLAKE.LOCAL.AI_OBSERVABILITY_EVENTS
-WHERE RECORD_ATTRIBUTES:"snow.ai.observability.object.name"::STRING
-      IN ('SUPPORT_AGENT', 'CUSTOMER_SUPPORT_AGENT_LANGGRAPH')
-  AND RECORD_ATTRIBUTES:"ai.observability.span_type"::STRING = 'eval_root'
+FROM (
+    SELECT * FROM TABLE(SNOWFLAKE.LOCAL.GET_AI_OBSERVABILITY_EVENTS(
+        'CUST_SUPPORT_DEMO', 'AGENTS', 'CORTEX_CUST_SUPPORT_AGENT', 'CORTEX AGENT'))
+    UNION ALL
+    SELECT * FROM TABLE(SNOWFLAKE.LOCAL.GET_AI_OBSERVABILITY_EVENTS(
+        'CUST_SUPPORT_DEMO', 'AGENTS', 'LANGGRAPH_CUSTOMER_SUPPORT_AGENT', 'EXTERNAL AGENT'))
+)
+WHERE RECORD_ATTRIBUTES:"ai.observability.span_type"::STRING = 'eval_root'
   AND RECORD_ATTRIBUTES:"ai.observability.eval_root.score" IS NOT NULL
 GROUP BY 1, 2
 ORDER BY 1, 2;
@@ -116,10 +80,14 @@ SELECT
     ROUND(PERCENTILE_CONT(0.95) WITHIN GROUP (ORDER BY TIMESTAMPDIFF('millisecond', START_TIMESTAMP, TIMESTAMP)), 0) AS P95_MS,
     ROUND(MIN(TIMESTAMPDIFF('millisecond', START_TIMESTAMP, TIMESTAMP)), 0) AS MIN_MS,
     ROUND(MAX(TIMESTAMPDIFF('millisecond', START_TIMESTAMP, TIMESTAMP)), 0) AS MAX_MS
-FROM SNOWFLAKE.LOCAL.AI_OBSERVABILITY_EVENTS
-WHERE RECORD_ATTRIBUTES:"snow.ai.observability.object.name"::STRING
-      IN ('SUPPORT_AGENT', 'CUSTOMER_SUPPORT_AGENT_LANGGRAPH')
-  AND RECORD_ATTRIBUTES:"ai.observability.span_type"::STRING = 'record_root'
+FROM (
+    SELECT * FROM TABLE(SNOWFLAKE.LOCAL.GET_AI_OBSERVABILITY_EVENTS(
+        'CUST_SUPPORT_DEMO', 'AGENTS', 'CORTEX_CUST_SUPPORT_AGENT', 'CORTEX AGENT'))
+    UNION ALL
+    SELECT * FROM TABLE(SNOWFLAKE.LOCAL.GET_AI_OBSERVABILITY_EVENTS(
+        'CUST_SUPPORT_DEMO', 'AGENTS', 'LANGGRAPH_CUSTOMER_SUPPORT_AGENT', 'EXTERNAL AGENT'))
+)
+WHERE RECORD_ATTRIBUTES:"ai.observability.span_type"::STRING = 'record_root'
 GROUP BY 1
 ORDER BY 1;
 
@@ -133,10 +101,14 @@ SELECT
     ROUND(AVG(TIMESTAMPDIFF('millisecond', START_TIMESTAMP, TIMESTAMP)), 0) AS AVG_DURATION_MS,
     ROUND(MEDIAN(TIMESTAMPDIFF('millisecond', START_TIMESTAMP, TIMESTAMP)), 0) AS MEDIAN_DURATION_MS,
     ROUND(MAX(TIMESTAMPDIFF('millisecond', START_TIMESTAMP, TIMESTAMP)), 0) AS MAX_DURATION_MS
-FROM SNOWFLAKE.LOCAL.AI_OBSERVABILITY_EVENTS
-WHERE RECORD_ATTRIBUTES:"snow.ai.observability.object.name"::STRING
-      IN ('SUPPORT_AGENT', 'CUSTOMER_SUPPORT_AGENT_LANGGRAPH')
-  AND RECORD_TYPE = 'SPAN'
+FROM (
+    SELECT * FROM TABLE(SNOWFLAKE.LOCAL.GET_AI_OBSERVABILITY_EVENTS(
+        'CUST_SUPPORT_DEMO', 'AGENTS', 'CORTEX_CUST_SUPPORT_AGENT', 'CORTEX AGENT'))
+    UNION ALL
+    SELECT * FROM TABLE(SNOWFLAKE.LOCAL.GET_AI_OBSERVABILITY_EVENTS(
+        'CUST_SUPPORT_DEMO', 'AGENTS', 'LANGGRAPH_CUSTOMER_SUPPORT_AGENT', 'EXTERNAL AGENT'))
+)
+WHERE RECORD_TYPE = 'SPAN'
   AND RECORD_ATTRIBUTES:"ai.observability.span_type"::STRING IS NOT NULL
 GROUP BY 1, 2
 ORDER BY 1, AVG_DURATION_MS DESC;
@@ -145,7 +117,7 @@ ORDER BY 1, AVG_DURATION_MS DESC;
 -- 5) CORTEX AGENT TOOL USAGE & DURATION BREAKDOWN
 --    Shows how the Cortex SUPPORT_AGENT uses its tools (search, analyst, planning)
 SELECT
-    'SUPPORT_AGENT' AS AGENT_NAME,
+    'CORTEX_CUST_SUPPORT_AGENT' AS AGENT_NAME,
     CASE
         WHEN RECORD_ATTRIBUTES:"snow.ai.observability.agent.tool.cortex_search.name" IS NOT NULL THEN 'cortex_search'
         WHEN RECORD_ATTRIBUTES:"snow.ai.observability.agent.tool.cortex_analyst.semantic_model" IS NOT NULL THEN 'cortex_analyst'
@@ -162,9 +134,9 @@ SELECT
         RECORD_ATTRIBUTES:"snow.ai.observability.agent.tool.cortex_analyst.duration"::NUMBER,
         RECORD_ATTRIBUTES:"snow.ai.observability.agent.duration"::NUMBER
     )), 0) AS MAX_DURATION_MS
-FROM SNOWFLAKE.LOCAL.AI_OBSERVABILITY_EVENTS
-WHERE RECORD_ATTRIBUTES:"snow.ai.observability.object.name"::STRING = 'SUPPORT_AGENT'
-  AND RECORD_TYPE = 'SPAN'
+FROM TABLE(SNOWFLAKE.LOCAL.GET_AI_OBSERVABILITY_EVENTS(
+    'CUST_SUPPORT_DEMO', 'AGENTS', 'CORTEX_CUST_SUPPORT_AGENT', 'CORTEX AGENT'))
+WHERE RECORD_TYPE = 'SPAN'
   AND (RECORD_ATTRIBUTES:"snow.ai.observability.agent.tool.cortex_search.name" IS NOT NULL
        OR RECORD_ATTRIBUTES:"snow.ai.observability.agent.tool.cortex_analyst.semantic_model" IS NOT NULL
        OR RECORD_ATTRIBUTES:"snow.ai.observability.agent.duration" IS NOT NULL)
@@ -176,37 +148,26 @@ ORDER BY AVG_DURATION_MS DESC;
 --    Shows retrieval, MCP, generation span durations for the external agent
 
 SELECT
-    'CUSTOMER_SUPPORT_AGENT_LANGGRAPH' AS AGENT_NAME,
+    'LANGGRAPH_CUSTOMER_SUPPORT_AGENT' AS AGENT_NAME,
     RECORD_ATTRIBUTES:"ai.observability.span_type"::STRING AS SPAN_TYPE,
     COUNT(*) AS SPAN_COUNT,
     ROUND(AVG(TIMESTAMPDIFF('millisecond', START_TIMESTAMP, TIMESTAMP)), 0) AS AVG_DURATION_MS,
     ROUND(MAX(TIMESTAMPDIFF('millisecond', START_TIMESTAMP, TIMESTAMP)), 0) AS MAX_DURATION_MS,
     ROUND(SUM(TIMESTAMPDIFF('millisecond', START_TIMESTAMP, TIMESTAMP)), 0) AS TOTAL_DURATION_MS
-FROM SNOWFLAKE.LOCAL.AI_OBSERVABILITY_EVENTS
-WHERE RECORD_ATTRIBUTES:"snow.ai.observability.object.name"::STRING = 'CUSTOMER_SUPPORT_AGENT_LANGGRAPH'
-  AND RECORD_TYPE = 'SPAN'
-  AND RECORD_ATTRIBUTES:"ai.observability.span_type"::STRING IN ('retrieval', 'MCP', 'generation', 'record_root')
+FROM TABLE(SNOWFLAKE.LOCAL.GET_AI_OBSERVABILITY_EVENTS(
+    'CUST_SUPPORT_DEMO', 'AGENTS', 'LANGGRAPH_CUSTOMER_SUPPORT_AGENT', 'EXTERNAL AGENT'))
+WHERE RECORD_TYPE = 'SPAN'
+  AND RECORD_ATTRIBUTES:"ai.observability.span_type"::STRING IN ('retrieval', 'tool', 'graph_node', 'MCP', 'generation', 'record_root', 'unknown')
 GROUP BY SPAN_TYPE
 ORDER BY AVG_DURATION_MS DESC;
 
-SELECT SNOWFLAKE.CORTEX.COUNT_TOKENS('e5-large-v2', 'RECORD_ATTRIBUTES:"ai.observability.graph_node.output_state"::STRING') AS COMPLETION_TOKENS;,
-        * FROM TABLE(
-    SNOWFLAKE.LOCAL.GET_AI_OBSERVABILITY_EVENTS(
-    'CUST_SUPPORT_DEMO',
-    'AGENTS',
-    'LANGGRAPH_CUSTOMER_SUPPORT_AGENT',
-    'EXTERNAL AGENT'
-    ))
-    where COMPLETION_TOKENS is not null;
 
 SELECT         
--- SNOWFLAKE.CORTEX.COUNT_TOKENS('llama4-maverick', RECORD_ATTRIBUTES:"ai.observability.graph_node.input_state"::STRING) AS PROMPT_TOKENS,
--- SNOWFLAKE.CORTEX.COUNT_TOKENS('llama4-maverick', RECORD_ATTRIBUTES:"ai.observability.graph_node.output_state"::STRING) AS COMPLETION_TOKENS,
--- PROMPT_TOKENS + COMPLETION_TOKENS AS TOTAL_TOKENS,
 REGEXP_SUBSTR(
     RECORD_ATTRIBUTES:"ai.observability.call.return"::STRING,
     'input_tokens.: (\\d+)', 1, 1, 'e'
 )::NUMBER AS INPUT_TOKENS,
+
 *     FROM TABLE(
     SNOWFLAKE.LOCAL.GET_AI_OBSERVABILITY_EVENTS(
     'CUST_SUPPORT_DEMO',
@@ -216,7 +177,6 @@ REGEXP_SUBSTR(
     ))
         WHERE RECORD_ATTRIBUTES:"ai.observability.span_type"::STRING = 'record_root';
 
-    -- where total_tokens is not null;
 
 
 -- 7) SIDE-BY-SIDE RESPONSE COMPARISON ON MATCHING INPUTS
@@ -234,7 +194,7 @@ WITH cortex_token_totals AS (
     'CORTEX_CUST_SUPPORT_AGENT',
     'CORTEX AGENT'
     ))
-    WHERE RECORD_ATTRIBUTES:"snow.ai.observability.agent.planning.token_count.total" IS NOT NULL
+    -- WHERE RECORD_ATTRIBUTES:"snow.ai.observability.agent.planning.token_count.total" IS NOT NULL
     GROUP BY RECORD_ID
 ),
 cortex_responses AS (
@@ -258,33 +218,40 @@ cortex_responses AS (
         ON r.RECORD_ATTRIBUTES:"ai.observability.record_id"::STRING = t.RECORD_ID
     WHERE r.RECORD_ATTRIBUTES:"ai.observability.span_type"::STRING = 'record_root'
 ),
-langgraph_token_raw AS (
+langgraph_token_extracted AS (
     SELECT
-        RECORD_ATTRIBUTES:"ai.observability.record_id"::STRING AS RECORD_ID,
-        RECORD_ATTRIBUTES:"ai.observability.call.return"::STRING AS CALL_RETURN,
-        REGEXP_COUNT(CALL_RETURN, 'usage_metadata=\\{''input_tokens'': \\d+') AS USAGE_COUNT
-    FROM TABLE(
-    SNOWFLAKE.LOCAL.GET_AI_OBSERVABILITY_EVENTS(
-    'CUST_SUPPORT_DEMO',
-    'AGENTS',
-    'LANGGRAPH_CUSTOMER_SUPPORT_AGENT',
-    'EXTERNAL AGENT'
-    ))
-    WHERE CALL_RETURN LIKE '%usage_metadata%'
-        AND RECORD_ATTRIBUTES:"ai.observability.span_type"::STRING = 'graph_node'
-),
-langgraph_idx AS (
-    SELECT SEQ4() + 1 AS N FROM TABLE(GENERATOR(ROWCOUNT => 20))
+        r.RECORD_ID,
+        TRY_PARSE_JSON(
+            SUBSTR(
+                REPLACE(REPLACE(f.VALUE::STRING, '''', '"'), 'True', 'true'),
+                POSITION('{' IN REPLACE(REPLACE(f.VALUE::STRING, '''', '"'), 'True', 'true'))
+            )
+        ) AS USAGE
+    FROM (
+        SELECT
+            RECORD_ATTRIBUTES:"ai.observability.record_id"::STRING AS RECORD_ID,
+            RECORD_ATTRIBUTES:"ai.observability.call.return"::STRING AS CALL_RETURN
+        FROM TABLE(
+        SNOWFLAKE.LOCAL.GET_AI_OBSERVABILITY_EVENTS(
+        'CUST_SUPPORT_DEMO',
+        'AGENTS',
+        'LANGGRAPH_CUSTOMER_SUPPORT_AGENT',
+        'EXTERNAL AGENT'
+        ))
+        WHERE CALL_RETURN LIKE '%usage_metadata%'
+            AND RECORD_ATTRIBUTES:"ai.observability.span_type"::STRING = 'graph_node'
+    ) r,
+    LATERAL FLATTEN(input => REGEXP_SUBSTR_ALL(r.CALL_RETURN, 'usage_metadata=\\{[^}]+\\}')) f
 ),
 langgraph_token_totals AS (
     SELECT
-        r.RECORD_ID,
-        SUM(REGEXP_SUBSTR(r.CALL_RETURN, '''input_tokens'': (\\d+)', 1, i.N, 'e')::NUMBER) AS PROMPT_TOKENS,
-        SUM(REGEXP_SUBSTR(r.CALL_RETURN, '''output_tokens'': (\\d+)', 1, i.N, 'e')::NUMBER) AS COMPLETION_TOKENS,
-        SUM(REGEXP_SUBSTR(r.CALL_RETURN, '''total_tokens'': (\\d+)', 1, i.N, 'e')::NUMBER) AS TOTAL_TOKENS
-    FROM langgraph_token_raw r
-    JOIN langgraph_idx i ON i.N <= r.USAGE_COUNT
-    GROUP BY r.RECORD_ID
+        RECORD_ID,
+        SUM(USAGE:"input_tokens"::NUMBER) AS PROMPT_TOKENS,
+        SUM(USAGE:"output_tokens"::NUMBER) AS COMPLETION_TOKENS,
+        SUM(USAGE:"total_tokens"::NUMBER) AS TOTAL_TOKENS
+    FROM langgraph_token_extracted
+    WHERE USAGE IS NOT NULL
+    GROUP BY RECORD_ID
 ),
 langgraph_responses AS (
     SELECT
@@ -363,33 +330,40 @@ cortex_responses AS (
         ON r.RECORD_ATTRIBUTES:"ai.observability.record_id"::STRING = t.RECORD_ID
     WHERE r.RECORD_ATTRIBUTES:"ai.observability.span_type"::STRING = 'record_root'
 ),
-langgraph_token_raw AS (
+langgraph_token_extracted AS (
     SELECT
-        RECORD_ATTRIBUTES:"ai.observability.record_id"::STRING AS RECORD_ID,
-        RECORD_ATTRIBUTES:"ai.observability.call.return"::STRING AS CALL_RETURN,
-        REGEXP_COUNT(CALL_RETURN, 'usage_metadata=\\{''input_tokens'': \\d+') AS USAGE_COUNT
-    FROM TABLE(
-    SNOWFLAKE.LOCAL.GET_AI_OBSERVABILITY_EVENTS(
-    'CUST_SUPPORT_DEMO',
-    'AGENTS',
-    'LANGGRAPH_CUSTOMER_SUPPORT_AGENT',
-    'EXTERNAL AGENT'
-    ))
-    WHERE CALL_RETURN LIKE '%usage_metadata%'
-        AND RECORD_ATTRIBUTES:"ai.observability.span_type"::STRING = 'graph_node'
-),
-langgraph_idx AS (
-    SELECT SEQ4() + 1 AS N FROM TABLE(GENERATOR(ROWCOUNT => 20))
+        r.RECORD_ID,
+        TRY_PARSE_JSON(
+            SUBSTR(
+                REPLACE(REPLACE(f.VALUE::STRING, '''', '"'), 'True', 'true'),
+                POSITION('{' IN REPLACE(REPLACE(f.VALUE::STRING, '''', '"'), 'True', 'true'))
+            )
+        ) AS USAGE
+    FROM (
+        SELECT
+            RECORD_ATTRIBUTES:"ai.observability.record_id"::STRING AS RECORD_ID,
+            RECORD_ATTRIBUTES:"ai.observability.call.return"::STRING AS CALL_RETURN
+        FROM TABLE(
+        SNOWFLAKE.LOCAL.GET_AI_OBSERVABILITY_EVENTS(
+        'CUST_SUPPORT_DEMO',
+        'AGENTS',
+        'LANGGRAPH_CUSTOMER_SUPPORT_AGENT',
+        'EXTERNAL AGENT'
+        ))
+        WHERE CALL_RETURN LIKE '%usage_metadata%'
+            AND RECORD_ATTRIBUTES:"ai.observability.span_type"::STRING = 'graph_node'
+    ) r,
+    LATERAL FLATTEN(input => REGEXP_SUBSTR_ALL(r.CALL_RETURN, 'usage_metadata=\\{[^}]+\\}')) f
 ),
 langgraph_token_totals AS (
     SELECT
-        r.RECORD_ID,
-        SUM(REGEXP_SUBSTR(r.CALL_RETURN, '''input_tokens'': (\\d+)', 1, i.N, 'e')::NUMBER) AS PROMPT_TOKENS,
-        SUM(REGEXP_SUBSTR(r.CALL_RETURN, '''output_tokens'': (\\d+)', 1, i.N, 'e')::NUMBER) AS COMPLETION_TOKENS,
-        SUM(REGEXP_SUBSTR(r.CALL_RETURN, '''total_tokens'': (\\d+)', 1, i.N, 'e')::NUMBER) AS TOTAL_TOKENS
-    FROM langgraph_token_raw r
-    JOIN langgraph_idx i ON i.N <= r.USAGE_COUNT
-    GROUP BY r.RECORD_ID
+        RECORD_ID,
+        SUM(USAGE:"input_tokens"::NUMBER) AS PROMPT_TOKENS,
+        SUM(USAGE:"output_tokens"::NUMBER) AS COMPLETION_TOKENS,
+        SUM(USAGE:"total_tokens"::NUMBER) AS TOTAL_TOKENS
+    FROM langgraph_token_extracted
+    WHERE USAGE IS NOT NULL
+    GROUP BY RECORD_ID
 ),
 langgraph_responses AS (
     SELECT
@@ -442,10 +416,14 @@ SELECT
         ELSE '< 0.4 (Poor)'
     END AS SCORE_BUCKET,
     COUNT(*) AS COUNT
-FROM SNOWFLAKE.LOCAL.AI_OBSERVABILITY_EVENTS
-WHERE RECORD_ATTRIBUTES:"snow.ai.observability.object.name"::STRING
-      IN ('SUPPORT_AGENT', 'CUSTOMER_SUPPORT_AGENT_LANGGRAPH')
-  AND RECORD_ATTRIBUTES:"ai.observability.span_type"::STRING = 'eval_root'
+FROM (
+    SELECT * FROM TABLE(SNOWFLAKE.LOCAL.GET_AI_OBSERVABILITY_EVENTS(
+        'CUST_SUPPORT_DEMO', 'AGENTS', 'CORTEX_CUST_SUPPORT_AGENT', 'CORTEX AGENT'))
+    UNION ALL
+    SELECT * FROM TABLE(SNOWFLAKE.LOCAL.GET_AI_OBSERVABILITY_EVENTS(
+        'CUST_SUPPORT_DEMO', 'AGENTS', 'LANGGRAPH_CUSTOMER_SUPPORT_AGENT', 'EXTERNAL AGENT'))
+)
+WHERE RECORD_ATTRIBUTES:"ai.observability.span_type"::STRING = 'eval_root'
   AND RECORD_ATTRIBUTES:"ai.observability.eval_root.score" IS NOT NULL
 GROUP BY 1, 2, 3
 ORDER BY 1, 2, 3;
@@ -460,9 +438,9 @@ SELECT
     ROUND(AVG(RECORD_ATTRIBUTES:"ai.observability.eval_root.score"::FLOAT), 4) AS AVG_SCORE,
     ROUND(MIN(RECORD_ATTRIBUTES:"ai.observability.eval_root.score"::FLOAT), 4) AS MIN_SCORE,
     SUM(CASE WHEN RECORD_ATTRIBUTES:"ai.observability.eval_root.score"::FLOAT = 1 THEN 1 ELSE 0 END) AS PERFECT_COUNT
-FROM SNOWFLAKE.LOCAL.AI_OBSERVABILITY_EVENTS
-WHERE RECORD_ATTRIBUTES:"snow.ai.observability.object.name"::STRING = 'CUSTOMER_SUPPORT_AGENT_LANGGRAPH'
-  AND RECORD_ATTRIBUTES:"ai.observability.span_type"::STRING = 'eval_root'
+FROM TABLE(SNOWFLAKE.LOCAL.GET_AI_OBSERVABILITY_EVENTS(
+    'CUST_SUPPORT_DEMO', 'AGENTS', 'LANGGRAPH_CUSTOMER_SUPPORT_AGENT', 'EXTERNAL AGENT'))
+WHERE RECORD_ATTRIBUTES:"ai.observability.span_type"::STRING = 'eval_root'
   AND RECORD_ATTRIBUTES:"ai.observability.eval_root.score" IS NOT NULL
 GROUP BY 1, 2
 ORDER BY 1, 2;
@@ -482,10 +460,14 @@ WITH roots AS (
             RECORD_ATTRIBUTES:"snow.ai.observability.object.name"::STRING,
             RECORD_ATTRIBUTES:"ai.observability.record_root.input"::STRING
             ORDER BY TIMESTAMP DESC) AS RN
-    FROM SNOWFLAKE.LOCAL.AI_OBSERVABILITY_EVENTS
-    WHERE RECORD_ATTRIBUTES:"snow.ai.observability.object.name"::STRING
-          IN ('SUPPORT_AGENT', 'CUSTOMER_SUPPORT_AGENT_LANGGRAPH')
-      AND RECORD_ATTRIBUTES:"ai.observability.span_type"::STRING = 'record_root'
+    FROM (
+        SELECT * FROM TABLE(SNOWFLAKE.LOCAL.GET_AI_OBSERVABILITY_EVENTS(
+            'CUST_SUPPORT_DEMO', 'AGENTS', 'CORTEX_CUST_SUPPORT_AGENT', 'CORTEX AGENT'))
+        UNION ALL
+        SELECT * FROM TABLE(SNOWFLAKE.LOCAL.GET_AI_OBSERVABILITY_EVENTS(
+            'CUST_SUPPORT_DEMO', 'AGENTS', 'LANGGRAPH_CUSTOMER_SUPPORT_AGENT', 'EXTERNAL AGENT'))
+    )
+    WHERE RECORD_ATTRIBUTES:"ai.observability.span_type"::STRING = 'record_root'
 ),
 evals AS (
     SELECT
@@ -493,10 +475,14 @@ evals AS (
         RECORD_ATTRIBUTES:"ai.observability.eval.target_record_id"::STRING AS TARGET_RECORD_ID,
         RECORD_ATTRIBUTES:"ai.observability.eval.metric_name"::STRING AS METRIC,
         ROUND(RECORD_ATTRIBUTES:"ai.observability.eval_root.score"::FLOAT, 2)::NUMBER(5,2) AS SCORE
-    FROM SNOWFLAKE.LOCAL.AI_OBSERVABILITY_EVENTS
-    WHERE RECORD_ATTRIBUTES:"snow.ai.observability.object.name"::STRING
-          IN ('SUPPORT_AGENT', 'CUSTOMER_SUPPORT_AGENT_LANGGRAPH')
-      AND RECORD_ATTRIBUTES:"ai.observability.span_type"::STRING = 'eval_root'
+    FROM (
+        SELECT * FROM TABLE(SNOWFLAKE.LOCAL.GET_AI_OBSERVABILITY_EVENTS(
+            'CUST_SUPPORT_DEMO', 'AGENTS', 'CORTEX_CUST_SUPPORT_AGENT', 'CORTEX AGENT'))
+        UNION ALL
+        SELECT * FROM TABLE(SNOWFLAKE.LOCAL.GET_AI_OBSERVABILITY_EVENTS(
+            'CUST_SUPPORT_DEMO', 'AGENTS', 'LANGGRAPH_CUSTOMER_SUPPORT_AGENT', 'EXTERNAL AGENT'))
+    )
+    WHERE RECORD_ATTRIBUTES:"ai.observability.span_type"::STRING = 'eval_root'
       AND RECORD_ATTRIBUTES:"ai.observability.eval_root.score" IS NOT NULL
 ),
 query_evals AS (
@@ -539,10 +525,10 @@ combined AS (
     WHERE l.RN = 1
 ),
 cortex AS (
-    SELECT * FROM combined WHERE AGENT_NAME = 'SUPPORT_AGENT'
+    SELECT * FROM combined WHERE AGENT_NAME = 'CORTEX_CUST_SUPPORT_AGENT'
 ),
 langgraph AS (
-    SELECT * FROM combined WHERE AGENT_NAME = 'CUSTOMER_SUPPORT_AGENT_LANGGRAPH'
+    SELECT * FROM combined WHERE AGENT_NAME = 'LANGGRAPH_CUSTOMER_SUPPORT_AGENT'
 )
 SELECT
     COALESCE(c.USER_QUERY, l.USER_QUERY) AS USER_QUERY,

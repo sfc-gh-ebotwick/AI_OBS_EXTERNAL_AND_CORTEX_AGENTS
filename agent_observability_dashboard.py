@@ -8,8 +8,29 @@ st.set_page_config(page_title="Agent Observability Dashboard", layout="wide")
 
 session = get_active_session()
 
-AGENTS = "('SUPPORT_AGENT', 'CUSTOMER_SUPPORT_AGENT_LANGGRAPH')"
-AGENT_LABELS = {"SUPPORT_AGENT": "Cortex Agent", "CUSTOMER_SUPPORT_AGENT_LANGGRAPH": "LangGraph Agent"}
+CORTEX_AGENT = ("CUST_SUPPORT_DEMO", "AGENTS", "CORTEX_CUST_SUPPORT_AGENT", "CORTEX AGENT")
+LANGGRAPH_AGENT = ("CUST_SUPPORT_DEMO", "AGENTS", "LANGGRAPH_CUSTOMER_SUPPORT_AGENT", "EXTERNAL AGENT")
+
+AGENT_LABELS = {
+    "CORTEX_CUST_SUPPORT_AGENT": "Cortex Agent",
+    "LANGGRAPH_CUSTOMER_SUPPORT_AGENT": "LangGraph Agent",
+}
+
+BOTH_AGENTS_SQL = f"""(
+    SELECT * FROM TABLE(SNOWFLAKE.LOCAL.GET_AI_OBSERVABILITY_EVENTS(
+        '{CORTEX_AGENT[0]}', '{CORTEX_AGENT[1]}', '{CORTEX_AGENT[2]}', '{CORTEX_AGENT[3]}'))
+    UNION ALL
+    SELECT * FROM TABLE(SNOWFLAKE.LOCAL.GET_AI_OBSERVABILITY_EVENTS(
+        '{LANGGRAPH_AGENT[0]}', '{LANGGRAPH_AGENT[1]}', '{LANGGRAPH_AGENT[2]}', '{LANGGRAPH_AGENT[3]}'))
+)"""
+
+CORTEX_EVENTS_SQL = f"""TABLE(SNOWFLAKE.LOCAL.GET_AI_OBSERVABILITY_EVENTS(
+    '{CORTEX_AGENT[0]}', '{CORTEX_AGENT[1]}', '{CORTEX_AGENT[2]}', '{CORTEX_AGENT[3]}'))"""
+
+LANGGRAPH_EVENTS_SQL = f"""TABLE(SNOWFLAKE.LOCAL.GET_AI_OBSERVABILITY_EVENTS(
+    '{LANGGRAPH_AGENT[0]}', '{LANGGRAPH_AGENT[1]}', '{LANGGRAPH_AGENT[2]}', '{LANGGRAPH_AGENT[3]}'))"""
+
+METRIC_NORMALIZE = "REPLACE(RECORD_ATTRIBUTES:\"ai.observability.eval.metric_name\"::STRING, 'answer_correctness', 'correctness')"
 
 
 @st.cache_data(ttl=300)
@@ -49,19 +70,17 @@ exec_df = run_query(f"""
                 RECORD_ATTRIBUTES:"snow.ai.observability.object.name"::STRING,
                 RECORD_ATTRIBUTES:"ai.observability.record_root.input"::STRING
                 ORDER BY TIMESTAMP DESC) AS RN
-        FROM SNOWFLAKE.LOCAL.AI_OBSERVABILITY_EVENTS
-        WHERE RECORD_ATTRIBUTES:"snow.ai.observability.object.name"::STRING IN {AGENTS}
-          AND RECORD_ATTRIBUTES:"ai.observability.span_type"::STRING = 'record_root'
+        FROM {BOTH_AGENTS_SQL}
+        WHERE RECORD_ATTRIBUTES:"ai.observability.span_type"::STRING = 'record_root'
     ),
     evals AS (
         SELECT
             RECORD_ATTRIBUTES:"snow.ai.observability.object.name"::STRING AS AGENT_NAME,
             RECORD_ATTRIBUTES:"ai.observability.eval.target_record_id"::STRING AS TARGET_RECORD_ID,
-            RECORD_ATTRIBUTES:"ai.observability.eval.metric_name"::STRING AS METRIC,
+            {METRIC_NORMALIZE} AS METRIC,
             ROUND(RECORD_ATTRIBUTES:"ai.observability.eval_root.score"::FLOAT, 2)::NUMBER(5,2) AS SCORE
-        FROM SNOWFLAKE.LOCAL.AI_OBSERVABILITY_EVENTS
-        WHERE RECORD_ATTRIBUTES:"snow.ai.observability.object.name"::STRING IN {AGENTS}
-          AND RECORD_ATTRIBUTES:"ai.observability.span_type"::STRING = 'eval_root'
+        FROM {BOTH_AGENTS_SQL}
+        WHERE RECORD_ATTRIBUTES:"ai.observability.span_type"::STRING = 'eval_root'
           AND RECORD_ATTRIBUTES:"ai.observability.eval_root.score" IS NOT NULL
     ),
     query_evals AS (
@@ -86,8 +105,8 @@ exec_df = run_query(f"""
         LEFT JOIN query_scores s ON l.AGENT_NAME = s.AGENT_NAME AND l.USER_QUERY = s.USER_QUERY
         WHERE l.RN = 1
     ),
-    cortex AS (SELECT * FROM combined WHERE AGENT_NAME = 'SUPPORT_AGENT'),
-    langgraph AS (SELECT * FROM combined WHERE AGENT_NAME = 'CUSTOMER_SUPPORT_AGENT_LANGGRAPH')
+    cortex AS (SELECT * FROM combined WHERE AGENT_NAME = '{CORTEX_AGENT[2]}'),
+    langgraph AS (SELECT * FROM combined WHERE AGENT_NAME = '{LANGGRAPH_AGENT[2]}')
     SELECT
         COALESCE(c.USER_QUERY, l.USER_QUERY) AS USER_QUERY,
         c.AVG_LATENCY_MS AS CORTEX_LATENCY_MS,
@@ -111,26 +130,22 @@ tab_summary, tab_eval, tab_latency, tab_responses = st.tabs([
     "Responses & Traces"
 ])
 
-# ─── TAB 1: EXECUTIVE SUMMARY ────────────────────────────────────────────────
-
 with tab_summary:
     scorecard_df = run_query(f"""
         WITH eval_scores AS (
             SELECT
                 RECORD_ATTRIBUTES:"snow.ai.observability.object.name"::STRING AS AGENT_NAME,
                 RECORD_ATTRIBUTES:"ai.observability.eval_root.score"::FLOAT AS SCORE
-            FROM SNOWFLAKE.LOCAL.AI_OBSERVABILITY_EVENTS
-            WHERE RECORD_ATTRIBUTES:"snow.ai.observability.object.name"::STRING IN {AGENTS}
-              AND RECORD_ATTRIBUTES:"ai.observability.span_type"::STRING = 'eval_root'
+            FROM {BOTH_AGENTS_SQL}
+            WHERE RECORD_ATTRIBUTES:"ai.observability.span_type"::STRING = 'eval_root'
               AND RECORD_ATTRIBUTES:"ai.observability.eval_root.score" IS NOT NULL
         ),
         latencies AS (
             SELECT
                 RECORD_ATTRIBUTES:"snow.ai.observability.object.name"::STRING AS AGENT_NAME,
                 TIMESTAMPDIFF('millisecond', START_TIMESTAMP, TIMESTAMP) AS DURATION_MS
-            FROM SNOWFLAKE.LOCAL.AI_OBSERVABILITY_EVENTS
-            WHERE RECORD_ATTRIBUTES:"snow.ai.observability.object.name"::STRING IN {AGENTS}
-              AND RECORD_ATTRIBUTES:"ai.observability.span_type"::STRING = 'record_root'
+            FROM {BOTH_AGENTS_SQL}
+            WHERE RECORD_ATTRIBUTES:"ai.observability.span_type"::STRING = 'record_root'
         )
         SELECT
             COALESCE(e.AGENT_NAME, l.AGENT_NAME) AS AGENT_NAME,
@@ -169,22 +184,19 @@ with tab_summary:
         })
     st.dataframe(pd.DataFrame(summary_rows), use_container_width=True, hide_index=True, height=400)
 
-# ─── TAB 2: EVAL COMPARISON ──────────────────────────────────────────────────
-
 with tab_eval:
     eval_detail_df = label_col(run_query(f"""
         SELECT
             RECORD_ATTRIBUTES:"snow.ai.observability.object.name"::STRING AS AGENT_NAME,
-            RECORD_ATTRIBUTES:"ai.observability.eval.metric_name"::STRING AS METRIC,
+            {METRIC_NORMALIZE} AS METRIC,
             ROUND(AVG(RECORD_ATTRIBUTES:"ai.observability.eval_root.score"::FLOAT), 3) AS AVG_SCORE,
             ROUND(MEDIAN(RECORD_ATTRIBUTES:"ai.observability.eval_root.score"::FLOAT), 3) AS MEDIAN_SCORE,
             ROUND(MIN(RECORD_ATTRIBUTES:"ai.observability.eval_root.score"::FLOAT), 3) AS MIN_SCORE,
             COUNT(*) AS NUM_EVALS,
             ROUND(SUM(CASE WHEN RECORD_ATTRIBUTES:"ai.observability.eval_root.score"::FLOAT = 1 THEN 1 ELSE 0 END)
                   / COUNT(*)::FLOAT * 100, 1) AS PERFECT_PCT
-        FROM SNOWFLAKE.LOCAL.AI_OBSERVABILITY_EVENTS
-        WHERE RECORD_ATTRIBUTES:"snow.ai.observability.object.name"::STRING IN {AGENTS}
-          AND RECORD_ATTRIBUTES:"ai.observability.span_type"::STRING = 'eval_root'
+        FROM {BOTH_AGENTS_SQL}
+        WHERE RECORD_ATTRIBUTES:"ai.observability.span_type"::STRING = 'eval_root'
           AND RECORD_ATTRIBUTES:"ai.observability.eval_root.score" IS NOT NULL
         GROUP BY 1, 2 ORDER BY 1, 2
     """))
@@ -216,7 +228,7 @@ with tab_eval:
     bucket_df = label_col(run_query(f"""
         SELECT
             RECORD_ATTRIBUTES:"snow.ai.observability.object.name"::STRING AS AGENT_NAME,
-            RECORD_ATTRIBUTES:"ai.observability.eval.metric_name"::STRING AS METRIC,
+            {METRIC_NORMALIZE} AS METRIC,
             CASE
                 WHEN RECORD_ATTRIBUTES:"ai.observability.eval_root.score"::FLOAT = 1.0 THEN '1.0 Perfect'
                 WHEN RECORD_ATTRIBUTES:"ai.observability.eval_root.score"::FLOAT >= 0.8 THEN '0.8 - 0.99'
@@ -225,9 +237,8 @@ with tab_eval:
                 ELSE '< 0.4'
             END AS SCORE_BUCKET,
             COUNT(*) AS CNT
-        FROM SNOWFLAKE.LOCAL.AI_OBSERVABILITY_EVENTS
-        WHERE RECORD_ATTRIBUTES:"snow.ai.observability.object.name"::STRING IN {AGENTS}
-          AND RECORD_ATTRIBUTES:"ai.observability.span_type"::STRING = 'eval_root'
+        FROM {BOTH_AGENTS_SQL}
+        WHERE RECORD_ATTRIBUTES:"ai.observability.span_type"::STRING = 'eval_root'
           AND RECORD_ATTRIBUTES:"ai.observability.eval_root.score" IS NOT NULL
         GROUP BY 1, 2, 3
     """))
@@ -249,17 +260,14 @@ with tab_eval:
         ), use_container_width=True, hide_index=True
     )
 
-# ─── TAB 3: LATENCY & SPANS ──────────────────────────────────────────────────
-
 with tab_latency:
     latency_df = label_col(run_query(f"""
         SELECT
             RECORD_ATTRIBUTES:"snow.ai.observability.object.name"::STRING AS AGENT_NAME,
             RECORD_ATTRIBUTES:"ai.observability.record_root.input"::STRING AS USER_QUERY,
             TIMESTAMPDIFF('millisecond', START_TIMESTAMP, TIMESTAMP) AS LATENCY_MS
-        FROM SNOWFLAKE.LOCAL.AI_OBSERVABILITY_EVENTS
-        WHERE RECORD_ATTRIBUTES:"snow.ai.observability.object.name"::STRING IN {AGENTS}
-          AND RECORD_ATTRIBUTES:"ai.observability.span_type"::STRING = 'record_root'
+        FROM {BOTH_AGENTS_SQL}
+        WHERE RECORD_ATTRIBUTES:"ai.observability.span_type"::STRING = 'record_root'
     """))
 
     left, right = st.columns(2)
@@ -291,9 +299,8 @@ with tab_latency:
             COUNT(*) AS SPAN_COUNT,
             ROUND(AVG(TIMESTAMPDIFF('millisecond', START_TIMESTAMP, TIMESTAMP)), 0) AS AVG_DURATION_MS,
             ROUND(MAX(TIMESTAMPDIFF('millisecond', START_TIMESTAMP, TIMESTAMP)), 0) AS MAX_DURATION_MS
-        FROM SNOWFLAKE.LOCAL.AI_OBSERVABILITY_EVENTS
-        WHERE RECORD_ATTRIBUTES:"snow.ai.observability.object.name"::STRING IN {AGENTS}
-          AND RECORD_TYPE = 'SPAN'
+        FROM {BOTH_AGENTS_SQL}
+        WHERE RECORD_TYPE = 'SPAN'
           AND RECORD_ATTRIBUTES:"ai.observability.span_type"::STRING IS NOT NULL
           AND RECORD_ATTRIBUTES:"ai.observability.span_type"::STRING NOT IN ('eval', 'eval_root')
         GROUP BY 1, 2 ORDER BY 1, AVG_DURATION_MS DESC
@@ -331,17 +338,14 @@ with tab_latency:
                 RECORD_ATTRIBUTES:"snow.ai.observability.agent.tool.cortex_analyst.duration"::NUMBER,
                 RECORD_ATTRIBUTES:"snow.ai.observability.agent.duration"::NUMBER
             )), 0) AS MAX_MS
-        FROM SNOWFLAKE.LOCAL.AI_OBSERVABILITY_EVENTS
-        WHERE RECORD_ATTRIBUTES:"snow.ai.observability.object.name"::STRING = 'SUPPORT_AGENT'
-          AND RECORD_TYPE = 'SPAN'
+        FROM {CORTEX_EVENTS_SQL}
+        WHERE RECORD_TYPE = 'SPAN'
           AND (RECORD_ATTRIBUTES:"snow.ai.observability.agent.tool.cortex_search.name" IS NOT NULL
                OR RECORD_ATTRIBUTES:"snow.ai.observability.agent.tool.cortex_analyst.semantic_model" IS NOT NULL
                OR RECORD_ATTRIBUTES:"snow.ai.observability.agent.duration" IS NOT NULL)
         GROUP BY TOOL ORDER BY AVG_MS DESC
     """)
     st.dataframe(tool_df, use_container_width=True, hide_index=True)
-
-# ─── TAB 4: RESPONSES & TRACES ───────────────────────────────────────────────
 
 with tab_responses:
     queries = exec_df["USER_QUERY"].dropna().unique().tolist()
@@ -397,7 +401,7 @@ with tab_responses:
                         RECORD_ATTRIBUTES:"snow.ai.observability.agent.tool.cortex_search.status"::STRING AS STATUS,
                         TIMESTAMPDIFF('millisecond', START_TIMESTAMP, TIMESTAMP) AS DURATION_MS,
                         START_TIMESTAMP
-                    FROM SNOWFLAKE.LOCAL.AI_OBSERVABILITY_EVENTS
+                    FROM {CORTEX_EVENTS_SQL}
                     WHERE TRACE:"trace_id"::STRING = '{cortex_trace_id}'
                       AND RECORD_TYPE = 'SPAN'
                     ORDER BY START_TIMESTAMP
@@ -429,7 +433,7 @@ with tab_responses:
                         LEFT(RECORD_ATTRIBUTES:"ai.observability.call.return"::STRING, 500) AS CALL_RETURN,
                         TIMESTAMPDIFF('millisecond', START_TIMESTAMP, TIMESTAMP) AS DURATION_MS,
                         START_TIMESTAMP
-                    FROM SNOWFLAKE.LOCAL.AI_OBSERVABILITY_EVENTS
+                    FROM {LANGGRAPH_EVENTS_SQL}
                     WHERE TRACE:"trace_id"::STRING = '{lg_trace_id}'
                       AND RECORD_TYPE = 'SPAN'
                       AND RECORD_ATTRIBUTES:"ai.observability.span_type"::STRING NOT IN ('eval', 'eval_root')
