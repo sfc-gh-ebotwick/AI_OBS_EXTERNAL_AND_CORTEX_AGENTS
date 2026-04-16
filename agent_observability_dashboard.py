@@ -182,7 +182,7 @@ with tab_summary:
             **{f"C: {k}": v for k, v in c_scores.items()},
             **{f"LG: {k}": v for k, v in l_scores.items()},
         })
-    st.dataframe(pd.DataFrame(summary_rows), use_container_width=True, hide_index=True, height=400)
+    st.dataframe(pd.DataFrame(summary_rows), use_container_width=True, height=400)
 
 with tab_eval:
     eval_detail_df = label_col(run_query(f"""
@@ -257,7 +257,7 @@ with tab_eval:
     st.dataframe(
         eval_detail_df[["LABEL", "METRIC", "AVG_SCORE", "MEDIAN_SCORE", "MIN_SCORE", "NUM_EVALS", "PERFECT_PCT"]].rename(
             columns={"LABEL": "Agent", "PERFECT_PCT": "Perfect %"}
-        ), use_container_width=True, hide_index=True
+        ), use_container_width=True
     )
 
 with tab_latency:
@@ -345,7 +345,7 @@ with tab_latency:
                OR RECORD_ATTRIBUTES:"snow.ai.observability.agent.duration" IS NOT NULL)
         GROUP BY TOOL ORDER BY AVG_MS DESC
     """)
-    st.dataframe(tool_df, use_container_width=True, hide_index=True)
+    st.dataframe(tool_df, use_container_width=True)
 
 with tab_responses:
     queries = exec_df["USER_QUERY"].dropna().unique().tolist()
