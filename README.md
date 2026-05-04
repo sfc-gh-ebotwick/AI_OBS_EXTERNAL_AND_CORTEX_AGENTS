@@ -127,7 +127,7 @@ Run the queries in `analyze_eval_data.sql` to compare both agents across:
 
 ## Evaluation Results: Head-to-Head Comparison
 
-Both agents evaluated on the same 25 queries using aligned metrics (runs: `CORTEX_ALIGNED_EVAL_V3`, `LANGGRAPH_ALIGNED_EVAL_V3`):
+Both agents evaluated on the same 25 queries using aligned metrics (runs: `CORTEX_EVAL`, `LANGGRAPH_EVAL`):
 
 | Metric | Cortex Agent | LangGraph |
 |--------|:-----------:|:---------:|
