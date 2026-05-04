@@ -664,14 +664,14 @@ SHOW AGENTS IN SCHEMA CUST_SUPPORT_DEMO.AGENTS;
 -- Kickoff evaluation run using yaml config
 CALL EXECUTE_AI_EVALUATION(
   'START',
-  OBJECT_CONSTRUCT('run_name', 'CORTEX_SUPPORT_AGENT_EVAL_RUN_V2'),
+  OBJECT_CONSTRUCT('run_name', 'CORTEX_SUPPORT_AGENT_EVAL_' || UUID_STRING()),
   '@CUST_SUPPORT_DEMO.AGENTS.EVAL_CONFIG_STAGE/support_agent_eval_config.yaml'
 );
 
 -- Check run status
 CALL EXECUTE_AI_EVALUATION(
   'STATUS',
-  OBJECT_CONSTRUCT('run_name', 'CORTEX_SUPPORT_AGENT_EVAL_RUN_V2'),
+  OBJECT_CONSTRUCT('run_name', '<run_name_from_above>'),
   '@CUST_SUPPORT_DEMO.AGENTS.EVAL_CONFIG_STAGE/support_agent_eval_config.yaml'
 );
 

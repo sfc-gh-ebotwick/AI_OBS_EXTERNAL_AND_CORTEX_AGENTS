@@ -2,7 +2,7 @@
 
 ## The Big Idea
 
-Snowflake AI Observability provides a **single, unified framework** for tracing, evaluating, and comparing AI agents — regardless of whether they were built natively with **Cortex Agent** or externally with frameworks like **LangGraph**, **CrewAI**, **AutoGen**, or any OpenTelemetry-compatible system. Every agent's traces, tool calls, and evaluation scores land in the same `SNOWFLAKE.LOCAL.AI_OBSERVABILITY_EVENTS` table, enabling true apples-to-apples comparison.
+Snowflake AI Observability provides a **single, unified framework** for tracing, evaluating, and comparing AI agents — regardless of whether they were built natively with **Cortex Agent** or externally with frameworks like **LangGraph**, **CrewAI**, **AutoGen**. Every agent's traces, tool calls, and evaluation scores land in the same `SNOWFLAKE.LOCAL.AI_OBSERVABILITY_EVENTS` table, enabling true apples-to-apples comparison.
 
 This project demonstrates that end-to-end by building **two customer support agents** that answer the same questions using the same underlying data — then tracing and evaluating both through AI Observability.
 

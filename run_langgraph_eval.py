@@ -144,7 +144,9 @@ from trulens.connectors.snowflake import SnowflakeConnector
 tru_snowflake_connector = SnowflakeConnector(snowpark_session=session)
 
 APP_NAME = "LANGGRAPH_CUSTOMER_SUPPORT_AGENT"
-APP_VERSION = "ALIGNED_EVAL_V3"
+import uuid
+RUN_ID = uuid.uuid4().hex[:8]
+APP_VERSION = f"eval_{RUN_ID}"
 
 try:
     session.sql(f'DROP EXTERNAL AGENT {APP_NAME}').collect()
@@ -171,11 +173,11 @@ print(f"Evaluation dataset: {len(queries_df)} queries")
 from trulens.core.run import Run, RunConfig
 
 run_config = RunConfig(
-    run_name="LANGGRAPH_ALIGNED_EVAL_V3",
-    description="Aligned evaluation V3 - correctness, groundedness, coherence, logical_consistency",
+    run_name=f"LANGGRAPH_EVAL_{RUN_ID}",
+    description="Evaluation - correctness, groundedness, coherence, logical_consistency",
     dataset_name="TEST_QUERIES_DF",
     source_type="DATAFRAME",
-    label="LANGGRAPH_ALIGNED_V3",
+    label=f"LANGGRAPH_{RUN_ID}",
     dataset_spec={
         "RECORD_ROOT.INPUT": "query_json",
         "RECORD_ROOT.GROUND_TRUTH_OUTPUT": "ground_truth_string",

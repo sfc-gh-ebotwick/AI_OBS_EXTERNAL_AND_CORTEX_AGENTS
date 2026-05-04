@@ -545,7 +545,7 @@ ORDER BY COALESCE(c.USER_QUERY, l.USER_QUERY);
 
 
 --------------------------------------------------------------------------------
--- 11) ALIGNED METRIC COMPARISON (NORMALIZED NAMES)
+-- 11) METRIC COMPARISON (NORMALIZED NAMES)
 --     Maps answer_correctness -> correctness for apples-to-apples comparison
 --     Filters to aligned eval runs only
 --------------------------------------------------------------------------------
