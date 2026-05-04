@@ -1,15 +1,14 @@
-# Marketing Campaign Agent Evaluation Configuration
-# Evaluation metrics for answer correctness, logical consistency, tool selection accuracy, execution efficiency and groundedness
-# Based on TruLens Agent GPA evaluation methodology
+# Customer Support Agent Evaluation Configuration
+# Aligned metrics for cross-agent comparison (Cortex Agent vs LangGraph)
+# Metrics: answer_correctness, logical_consistency (built-in) + groundedness, coherence (custom)
 
-# Evaluation task configuration
 evaluation:
   agent_params:
     agent_name: CUST_SUPPORT_DEMO.AGENTS.CORTEX_CUST_SUPPORT_AGENT
     agent_type: CORTEX AGENT
   run_params:
-    label: Customer Support Agent Evaluation
-    description: Evaluating Answer Correctness, Logical Consistency, Execution Efficiency and Groundedness metrics for the customer support agent
+    label: Aligned Evaluation
+    description: Evaluating with aligned metrics for cross-agent comparison - answer_correctness, logical_consistency, groundedness (sentence-split), coherence
   source_metadata:
     type: dataset
     dataset_name: CUST_SUPPORT_DEMO.AGENTS.SUPPORT_AGENT_EVAL_DATASET
@@ -19,56 +18,81 @@ metrics:
   - answer_correctness
   - logical_consistency
 
-  # Custom Metrics
+  # Custom Metrics (aligned to TruLens OOB methodology)
 
-  # Groundedness metric - TruLens Agent GPA based evaluation
-  # Evaluates whether the agent's response is supported by the execution trace
+  # Groundedness - aligned to OOB NLI-style binary per-sentence scoring
+  # OOB groundedness splits ALL sentences and scores each as supported/not-supported (no partial)
   - name: groundedness
     score_ranges:
       min_score: [0, 0.33]
       median_score: [0.34, 0.66]
       max_score: [0.67, 1]
     prompt: |
-      You are evaluating the groundedness of an AI agent's response. Groundedness measures
-      whether each substantive claim in the response is supported by concrete evidence in
-      the execution trace.
+      You are an INFORMATION OVERLAP classifier providing the overlap of information
+      between a SOURCE and a set of STATEMENTS.
 
-      IMPORTANT: Evaluate claim-to-result alignment, not claim-to-tool-type alignment.
-      A claim is grounded only if the required evidence appears in actual tool outputs,
-      retrieved rows/snippets, report outputs, or other trace context.
+      Your task: determine whether each statement in the agent's response is supported
+      by (entailed by) the source material from the tool outputs.
 
-      Agent Response to Evaluate:
+      STEP 1 - SENTENCE SPLITTING:
+      Split the agent's response into ALL individual sentences. Include EVERY sentence,
+      including interpretive commentary, analysis, suggestions, and follow-up questions.
+      Do NOT skip any sentences. Each sentence is evaluated independently.
+
+      STEP 2 - BINARY CLASSIFICATION:
+      For EACH sentence, classify as:
+      - SUPPORTED (1): The source material DIRECTLY supports or entails this statement.
+        The information must be explicitly present in or clearly derivable from the data.
+      - NOT SUPPORTED (0): The source material does NOT contain evidence for this statement.
+        This includes: interpretive analysis, opinions, suggestions, follow-up questions,
+        general knowledge claims, inferences beyond the data, comparisons not in the data,
+        and any embellishment beyond what the tools returned.
+
+      IMPORTANT: Statements expressing uncertainty or abstention ("I don't have that data")
+      are always SUPPORTED (1) since they correctly reflect limitations.
+
+      STEP 3 - FINAL SCORE:
+      Return the fraction of supported sentences: (number supported) / (total sentences).
+
+      === STATEMENTS (agent response to evaluate) ===
       {{output}}
 
-      The complete agent execution trace is provided as context, including:
-      - All tool calls made (query_performance_metrics, search_campaign_content, generate_campaign_report)
-      - Tool outputs and retrieved data
-      - Intermediate reasoning steps
+      === SOURCE (tool outputs - sole evidence) ===
+      {{tool_info}}
 
-      Here are a few examples of groundedness scores:
+      === CLASSIFICATION RULES ===
+      - This is BINARY: 1 or 0 per sentence. No partial credit.
+      - "The average CSAT is 3.82" → SUPPORTED if 3.82 appears in source data
+      - "There's room for improvement" → NOT SUPPORTED (interpretive)
+      - "Would you like a breakdown?" → NOT SUPPORTED (not grounded in data)
+      - "This means roughly 1 in 12 cases" → NOT SUPPORTED unless 1/12 is in source
+      - "Based on 200 cases spanning Dec 2025 - Feb 2026" → SUPPORTED if those facts are in source
+      - Numeric rounding is acceptable (3.89 vs 3.9 = SUPPORTED)
+      - Rankings must match the order in source data exactly
 
-      0 (Not Grounded):
-        - Key claims are unsupported, contradicted, or fabricated relative to tool results
-        - Superlative/comparative conclusions ("most compelling", "most alike", "best")
-          are made without evidence from returned results
-        - Report responses invent artifact details, KPIs, or findings not present in outputs
+  # Coherence - reference-free text quality evaluation
+  # Aligned to OOB coherence: "Is the submission coherent, well-structured, and organized?"
+  - name: coherence
+    score_ranges:
+      min_score: [0, 0.33]
+      median_score: [0.34, 0.66]
+      max_score: [0.67, 1]
+    prompt: |
+      Evaluate the coherence of this agent response. Coherence measures whether
+      the submission is well-structured, organized, and easy to follow.
 
-      0.5 (Partially Grounded):
-        - Some important claims are evidence-backed, but at least one material conclusion
-          is weakly supported or not directly shown in results
-        - Comparison conclusion is plausible but incomplete (limited evidence or missing tie-break rationale)
-        - Report output details are partially accurate but omit or blur key result-backed facts
-
-      1 (Fully Grounded):
-        - All material claims are traceable to concrete evidence in tool results
-        - Metrics, campaign attributes, and report details match retrieved outputs
-        - Comparative/superlative conclusions are justified using explicit evidence
-        - When evidence is incomplete, the response states uncertainty instead of guessing
+      Agent Response:
+      {{output}}
 
       Consider:
-      - Are revenue figures, ROI percentages, and other metrics supported by result rows?
-      - Are campaign descriptions, A/B notes, and feedback grounded in returned snippets?
-      - For report requests, does the response accurately reflect report generation output
-        (artifact/link/name) and avoid fabricated details?
-      - For capability/meta queries, tool calls may be unnecessary; still require claims
-        to align with supported behavior and trace context, without over-claiming.
+      1. Is the response logically organized with clear structure?
+      2. Are ideas presented in a sensible order?
+      3. Is the level of detail appropriate for the question asked?
+      4. Are data presentations (tables, lists, rankings) formatted clearly?
+      5. Is the response free of contradictions or redundant information?
+
+      Score on a scale of 0 to 1:
+      - 1.0: Well-organized, internally consistent, clear structure, appropriate detail
+      - 0.5: Partially coherent with minor structural issues, some redundancy, or
+        slightly inappropriate verbosity/terseness
+      - 0.0: Disorganized, contradictory, incoherent, or completely inappropriate format
